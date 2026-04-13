@@ -9,6 +9,7 @@ type Props = {
   onMarkPosted: (postId: string, isPosted: boolean) => void;
   onSave: (postId: string, updates: Partial<SocialPost>) => void;
   onMoveDay: (postId: string, newDayIndex: number) => void;
+  onDelete: (postId: string) => void;
 };
 
 function CopyIcon() {
@@ -39,17 +40,21 @@ function SaveButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveDay }: Props) {
+export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveDay, onDelete }: Props) {
   const [igHandle, setIgHandle] = useState(post.ig_handle ?? '');
+  const [driveLink, setDriveLink] = useState(post.drive_link ?? '');
   const [bio, setBio] = useState(post.bio ?? '');
   const [caption, setCaption] = useState(post.caption ?? '');
   const [copied, setCopied] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Sync fields when a different post is opened
   useEffect(() => {
     setIgHandle(post.ig_handle ?? '');
+    setDriveLink(post.drive_link ?? '');
     setBio(post.bio ?? '');
     setCaption(post.caption ?? '');
+    setConfirmDelete(false);
   }, [post.id]);
 
   // Close on Escape
@@ -70,6 +75,7 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
   }, []);
 
   const igHandleChanged = igHandle !== (post.ig_handle ?? '');
+  const driveLinkChanged = driveLink !== (post.drive_link ?? '');
   const bioChanged = bio !== (post.bio ?? '');
   const captionChanged = caption !== (post.caption ?? '');
 
@@ -130,24 +136,30 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
           </div>
 
           {/* Assets Folder */}
-          {post.drive_link && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <FieldLabel>Assets Folder</FieldLabel>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <FieldLabel>Assets Folder</FieldLabel>
+              {driveLink && (
                 <a
-                  href={post.drive_link}
+                  href={driveLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
                 >
                   Open in Drive ↗
                 </a>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 truncate">
-                drive.google.com/drive/folders/…
-              </div>
+              )}
             </div>
-          )}
+            <input
+              value={driveLink}
+              onChange={(e) => setDriveLink(e.target.value)}
+              placeholder="https://drive.google.com/..."
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+            />
+            {driveLinkChanged && (
+              <SaveButton onClick={() => onSave(post.id, { drive_link: driveLink || null })} />
+            )}
+          </div>
 
           {/* IG Handle */}
           <div>
@@ -256,7 +268,7 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 p-4 border-t bg-gray-50">
+        <div className="flex-shrink-0 p-4 border-t bg-gray-50 flex flex-col gap-2">
           <button
             onClick={() => onMarkPosted(post.id, !post.is_posted)}
             className={[
@@ -268,6 +280,29 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
           >
             {post.is_posted ? '✓ Posted — Tap to unmark' : 'Mark as Posted ✓'}
           </button>
+          {confirmDelete ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => onDelete(post.id)}
+                className="flex-1 py-2 rounded-xl font-semibold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                Confirm Delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-2 rounded-xl font-semibold text-sm bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="w-full py-2 rounded-xl font-semibold text-sm text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
+            >
+              Delete post
+            </button>
+          )}
         </div>
       </div>
     </div>

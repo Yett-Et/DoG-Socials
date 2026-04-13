@@ -100,6 +100,12 @@ export default function CalendarGrid({ initialPosts }: Props) {
     patchPost(postId, updates as Record<string, unknown>);
   }, []);
 
+  const handleDelete = useCallback((postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    setSelectedPostId(null);
+    fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+  }, []);
+
   const handleMoveDay = useCallback(
     (postId: string, newDayIndex: number) => {
       const post = posts.find((p) => p.id === postId);
@@ -169,6 +175,7 @@ export default function CalendarGrid({ initialPosts }: Props) {
           onMarkPosted={handleMarkPosted}
           onSave={handleSave}
           onMoveDay={handleMoveDay}
+          onDelete={handleDelete}
         />
       )}
 
