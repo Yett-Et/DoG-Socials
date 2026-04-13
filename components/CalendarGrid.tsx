@@ -14,6 +14,7 @@ import {
 import { SocialPost, DAYS } from '@/lib/types';
 import DayColumn from './DayColumn';
 import PostModal from './PostModal';
+import AddPostModal from './AddPostModal';
 import StatsBar from './StatsBar';
 import PostCard from './PostCard';
 
@@ -33,6 +34,7 @@ export default function CalendarGrid({ initialPosts }: Props) {
   const [posts, setPosts] = useState<SocialPost[]>(initialPosts);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [draggingPost, setDraggingPost] = useState<SocialPost | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Derive selectedPost from posts array so it always reflects latest state
   const selectedPost = selectedPostId ? (posts.find((p) => p.id === selectedPostId) ?? null) : null;
@@ -114,11 +116,24 @@ export default function CalendarGrid({ initialPosts }: Props) {
     [posts]
   );
 
+  const handlePostCreated = useCallback((newPost: SocialPost) => {
+    setPosts((prev) => [...prev, newPost]);
+    setShowAddModal(false);
+  }, []);
+
   const postedCount = posts.filter((p) => p.is_posted).length;
 
   return (
     <>
       <StatsBar total={posts.length} posted={postedCount} />
+      <div className="mb-4">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <span className="text-base leading-none">+</span> New Post
+        </button>
+      </div>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Horizontally scrollable on mobile */}
@@ -154,6 +169,13 @@ export default function CalendarGrid({ initialPosts }: Props) {
           onMarkPosted={handleMarkPosted}
           onSave={handleSave}
           onMoveDay={handleMoveDay}
+        />
+      )}
+
+      {showAddModal && (
+        <AddPostModal
+          onClose={() => setShowAddModal(false)}
+          onCreated={handlePostCreated}
         />
       )}
     </>
