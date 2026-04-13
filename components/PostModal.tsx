@@ -111,6 +111,24 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
 
+          {/* Event Link */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <FieldLabel>Event Link</FieldLabel>
+              <button
+                onClick={() => handleCopy('https://partiful.com/e/CeIqFeWlGdikbguBUm8M?c=oUakw_QW', 'eventlink')}
+                className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
+              >
+                {copied === 'eventlink'
+                  ? <span className="text-green-600">✓ Copied!</span>
+                  : <><CopyIcon /> Copy link</>}
+              </button>
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 truncate">
+              partiful.com/e/CeIqFeWlGdikbguBUm8M
+            </div>
+          </div>
+
           {/* IG Handle */}
           <div>
             <div className="flex items-center justify-between mb-1">
