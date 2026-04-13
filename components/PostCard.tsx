@@ -42,7 +42,10 @@ export default function PostCard({ post, onClick }: Props) {
           ✓
         </span>
       )}
-      <div className={`text-[9px] font-bold uppercase tracking-wide ${typeStyle.labelColor}`}>
+      <div
+        className="inline-block text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-white mb-0.5"
+        style={{ backgroundColor: typeStyle.color }}
+      >
         {typeStyle.icon} {typeStyle.label}
       </div>
       <div className="text-[11px] font-semibold text-gray-800 pr-4 leading-tight mt-0.5">

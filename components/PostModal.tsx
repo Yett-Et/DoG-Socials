@@ -82,7 +82,8 @@ export default function PostModal({ post, onClose, onMarkPosted, onSaveCaption, 
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <span
-                className={`inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded mb-1.5 border ${typeStyle.bg} ${typeStyle.border} ${typeStyle.labelColor}`}
+                className="inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded mb-1.5 text-white"
+                style={{ backgroundColor: typeStyle.color }}
               >
                 {typeStyle.icon} {typeStyle.label}
               </span>

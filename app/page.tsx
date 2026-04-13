@@ -31,12 +31,15 @@ export default async function Home() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-5">
           {Object.entries(POST_TYPE_STYLES).map(([type, style]) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <div className={`w-2.5 h-2.5 rounded-full ${style.dotColor}`} />
-              <span className="text-xs text-gray-500">{style.label}</span>
-            </div>
+            <span
+              key={type}
+              className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded text-white"
+              style={{ backgroundColor: style.color }}
+            >
+              {style.icon} {style.label}
+            </span>
           ))}
         </div>
 

@@ -22,6 +22,7 @@ export type PostTypeStyle = {
   labelColor: string;
   dotColor: string;
   icon: string;
+  color: string; // hex, used for solid badge backgrounds
 };
 
 export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
@@ -32,6 +33,7 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
     labelColor: 'text-[#1155aa]',
     dotColor: 'bg-[#88bbee]',
     icon: '◼',
+    color: '#5599dd',
   },
   as: {
     bg: 'bg-[#dff2df]',
@@ -40,6 +42,7 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
     labelColor: 'text-[#2d7a2d]',
     dotColor: 'bg-[#88cc88]',
     icon: '◎',
+    color: '#55aa55',
   },
   sf: {
     bg: 'bg-[#fff0cc]',
@@ -48,6 +51,7 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
     labelColor: 'text-[#996600]',
     dotColor: 'bg-[#eebb44]',
     icon: '◼',
+    color: '#cc9900',
   },
   ss: {
     bg: 'bg-[#fff7dd]',
@@ -56,6 +60,7 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
     labelColor: 'text-[#996600]',
     dotColor: 'bg-[#ffcc66]',
     icon: '◎',
+    color: '#ddaa00',
   },
   is: {
     bg: 'bg-[#fde8f2]',
@@ -64,6 +69,7 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
     labelColor: 'text-[#882255]',
     dotColor: 'bg-[#ee88bb]',
     icon: '◎',
+    color: '#cc5599',
   },
   ir: {
     bg: 'bg-[#eeeaff]',
@@ -72,6 +78,7 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
     labelColor: 'text-[#443399]',
     dotColor: 'bg-[#aa99ee]',
     icon: '▶',
+    color: '#7766cc',
   },
 };
 
