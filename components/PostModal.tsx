@@ -180,7 +180,19 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
 
           {/* Bio */}
           <div>
-            <FieldLabel>Bio</FieldLabel>
+            <div className="flex items-center justify-between mb-1">
+              <FieldLabel>Bio</FieldLabel>
+              {bio && (
+                <button
+                  onClick={() => handleCopy(bio, 'bio')}
+                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
+                >
+                  {copied === 'bio'
+                    ? <span className="text-green-600">✓ Copied!</span>
+                    : <><CopyIcon /> Copy bio</>}
+                </button>
+              )}
+            </div>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
