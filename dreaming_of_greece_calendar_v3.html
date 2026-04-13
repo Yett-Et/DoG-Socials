@@ -1,0 +1,363 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { font-family: sans-serif; padding: 12px; background: #fff; color: #111; }
+.header { margin-bottom: 12px; }
+.header h2 { font-size: 16px; font-weight: 600; margin: 0 0 2px; }
+.header p { font-size: 12px; color: #666; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; }
+.leg-dot { width: 9px; height: 9px; border-radius: 50%; }
+.grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.col { display: flex; flex-direction: column; gap: 4px; }
+.day-head { background: #f4f4f4; border-radius: 6px; text-align: center; padding: 6px 4px; }
+.day-head .dn { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+.day-head .dd { font-size: 16px; font-weight: 600; color: #111; }
+.day-head .dc { font-size: 10px; color: #999; }
+.sec { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; padding: 5px 0 1px; }
+.card { border-radius: 6px; border: 1px solid; padding: 6px 8px; cursor: pointer; position: relative; }
+.card:hover { opacity: 0.8; }
+.card.done { opacity: 0.35; }
+.card .ck { display: none; position: absolute; top: 4px; right: 6px; font-size: 10px; font-weight: 700; }
+.card.done .ck { display: block; }
+.card .ct { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+.card .cn { font-size: 11px; font-weight: 600; line-height: 1.3; padding-right: 12px; }
+.card .cs { font-size: 10px; margin-top: 1px; }
+.card .hint { font-size: 8px; opacity: 0.55; margin-top: 3px; }
+.card .mdb { font-size: 8px; text-decoration: underline; opacity: 0.65; margin-top: 3px; display: inline-block; }
+
+.af { background: #ddeeff; border-color: #88bbee; }
+.af .ct, .af .ck { color: #1155aa; }
+.af .cn { color: #0a3d8f; }
+.af .cs, .af .hint, .af .mdb { color: #3377cc; }
+
+.as { background: #dff2df; border-color: #88cc88; }
+.as .ct, .as .ck { color: #2d7a2d; }
+.as .cn { color: #1a5c1a; }
+.as .cs { color: #4a9e4a; }
+
+.sf { background: #fff0cc; border-color: #eebb44; }
+.sf .ct, .sf .ck { color: #996600; }
+.sf .cn { color: #7a5200; }
+.sf .cs { color: #bb8800; }
+
+.ss { background: #fff7dd; border-color: #ffcc66; }
+.ss .ct, .ss .ck { color: #996600; }
+.ss .cn { color: #7a5200; }
+.ss .cs { color: #bb8800; }
+
+.is { background: #fde8f2; border-color: #ee88bb; }
+.is .ct, .is .ck { color: #882255; }
+.is .cn { color: #661133; }
+.is .cs { color: #aa3366; }
+
+.ir { background: #eeeaff; border-color: #aa99ee; }
+.ir .ct, .ir .ck { color: #443399; }
+.ir .cn { color: #2d1f77; }
+.ir .cs { color: #6655bb; }
+
+.stats { display: flex; gap: 8px; margin-top: 14px; }
+.stat { background: #f4f4f4; border-radius: 6px; padding: 10px 14px; flex: 1; }
+.stat .sn { font-size: 22px; font-weight: 600; color: #111; }
+.stat .sl { font-size: 11px; color: #888; }
+.pbwrap { height: 4px; background: #eee; border-radius: 2px; margin-top: 8px; }
+.pbfill { height: 4px; background: #22aa77; border-radius: 2px; transition: width 0.3s; }
+
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.biobox { background: #fff; border-radius: 12px; border: 1px solid #ddd; padding: 20px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto; }
+.biobox h3 { font-size: 15px; font-weight: 700; margin: 0 0 2px; color: #111; }
+.biobox .bm { font-size: 11px; color: #888; margin-bottom: 10px; }
+.biobox .bb { font-size: 13px; color: #222; line-height: 1.65; }
+.biobox .caplabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin: 12px 0 4px; }
+.biobox .captext { font-size: 12px; color: #333; line-height: 1.65; white-space: pre-wrap; background: #f8f8f8; border-radius: 6px; padding: 10px; }
+.biobox .bacts { display: flex; justify-content: space-between; margin-top: 14px; }
+.biobox .bclose { font-size: 12px; color: #888; cursor: pointer; }
+.biobox .bmark { font-size: 12px; color: #333; text-decoration: underline; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>Dreaming of Greece — Social Calendar</h2>
+  <p>Apr 14–18 &nbsp;·&nbsp; moments.gallery &nbsp;·&nbsp; 1 influencer story per day &nbsp;·&nbsp; Tap cards to check off &nbsp;·&nbsp; Tap artist feed cards for bio</p>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#88bbee"></div>Artist feed</div>
+  <div class="leg"><div class="leg-dot" style="background:#88cc88"></div>Artist story</div>
+  <div class="leg"><div class="leg-dot" style="background:#eebb44"></div>Sponsor feed</div>
+  <div class="leg"><div class="leg-dot" style="background:#ffcc66"></div>Sponsor story</div>
+  <div class="leg"><div class="leg-dot" style="background:#ee88bb"></div>Influencer story</div>
+  <div class="leg"><div class="leg-dot" style="background:#aa99ee"></div>Influencer reel</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="stats">
+  <div class="stat"><div class="sn" id="s-done">0</div><div class="sl">Posted</div></div>
+  <div class="stat"><div class="sn" id="s-rem">0</div><div class="sl">Remaining</div></div>
+  <div class="stat"><div class="sn" id="s-pct">0%</div><div class="sl">Complete</div></div>
+</div>
+<div class="pbwrap"><div class="pbfill" id="pbfill" style="width:0%"></div></div>
+
+<div class="overlay" id="overlay" style="display:none">
+  <div class="biobox">
+    <h3 id="bo-name"></h3>
+    <div class="bm" id="bo-meta"></div>
+    <div class="bb" id="bo-bio"></div>
+    <div class="caplabel">Caption draft</div>
+    <div class="captext" id="bo-cap"></div>
+    <div class="bacts">
+      <span class="bclose" onclick="closeOverlay()">← Close</span>
+      <span class="bmark" id="bo-mark">Mark as posted ✓</span>
+    </div>
+  </div>
+</div>
+
+<script>
+var ARTISTS = {
+  "Aris Katsigiannis": {
+    meta: "Photographer & Filmmaker · Athens, Greece",
+    bio: "Born in Greece in 1994, Aris fell in love with photography and never looked back. A self-taught storyteller who co-founded WOMB Films, his work has taken him across continents — always chasing the raw, emotional truth of a moment. His viral film 'Dreams Can't Be Quarantined' captured hope from lockdown-era Greece and reached audiences worldwide.",
+    cap: "Aris Katsigiannis brings Greece to life through his lens — one frame, one feeling at a time. We're honored to have him as part of Dreaming of Greece. 🎞️🇬🇷\n\n@aris_katsigiannis\n\n#DreamingOfGreece #momentsgallery #GreekArt #DreamDowntown"
+  },
+  "Stefanos Addimando": {
+    meta: "Travel Photographer · Greece · @stef_greece",
+    bio: "Known as @stef_greece, Stefanos has spent years wandering Greece with a camera — from the crystal waters of the islands to hidden mountain villages tourists rarely reach. He believes every corner of Greece holds an extraordinary story, and he makes sure you feel it in every frame.",
+    cap: "Greece through the eyes of someone who never stopped being in awe of it. 🌊✨\n\n@stef_greece\n\n#DreamingOfGreece #momentsgallery #GreekPhotography #DreamDowntown"
+  },
+  "Ioakeim Koumousis": {
+    meta: "Visual Artist · Greece",
+    bio: "Ioakeim Koumousis is a Greek visual artist whose work draws from mythology, memory, and the textures of contemporary Greek life. His practice spans painting, mixed media, and digital work — always searching for where ancient symbolism meets the modern world.",
+    cap: "Ancient roots, contemporary vision. Ioakeim Koumousis at Dreaming of Greece. 🏛️🎨\n\n#DreamingOfGreece #momentsgallery #GreekArtist #DreamDowntown"
+  },
+  "INO": {
+    meta: "Street Artist & Muralist · Athens, Greece",
+    bio: "One of the most internationally recognized Greek street artists, INO studied painting at the Athens School of Fine Arts and started hitting the streets at 15. His signature style — fragmented figurative forms, photorealistic elements, and grayscale palette with flashes of light blue — has appeared on walls in London, New York, Berlin, and beyond.",
+    cap: "From the walls of Athens to stages worldwide — INO's murals speak louder than words. 🎨🩶\n\n#INO #DreamingOfGreece #momentsgallery #StreetArt #DreamDowntown"
+  },
+  "George Tatakis": {
+    meta: "Fine Art Photographer · Athens, Greece",
+    bio: "George Tatakis is an Athens-based fine art photographer with 24 international awards and work in the permanent collections of the Benaki Museum and the Fragonard Museum. His long-term black-and-white projects — Ethos and Caryatis — document the rituals, traditions, and identities of Greek culture with striking precision.",
+    cap: "George Tatakis photographs Greece the way it deserves to be remembered — in black, white, and feeling. 🖤📷\n\n@tatakisg\n\n#DreamingOfGreece #momentsgallery #GreekPhotography #DreamDowntown"
+  },
+  "Wild Drawing": {
+    meta: "Street Artist & Muralist · Athens, Greece",
+    bio: "Wild Drawing (WD) came to Athens from Bali in 2006 and became a defining figure of the city's street art scene. His photorealistic murals combine East and West, comics and classical technique — creating massive works that transform urban walls into emotional landscapes across Europe and the US.",
+    cap: "Two worlds, one wall. Wild Drawing turns concrete into conversation. 🌍🖌️\n\n@wd_wilddrawing\n\n#DreamingOfGreece #momentsgallery #StreetArt #DreamDowntown"
+  },
+  "Johan Lolos": {
+    meta: "Travel & Landscape Photographer · Belgian-Greek · @lebackpacker",
+    bio: "Born in Belgium to Greek parents, Johan Lolos — @lebackpacker — is the most-followed Belgian photographer on Instagram. His self-taught career spans six continents, a published book (Peaks of Europe), a TEDx talk, and collaborations with Toyota and National Geographic. A proud Greek soul carrying his roots around the world.",
+    cap: "From the Aegean to Patagonia, Johan Lolos photographs the world with the wandering spirit of a Greek dreamer. 📸🌍\n\n@lebackpacker\n\n#DreamingOfGreece #momentsgallery #TravelPhotography #DreamDowntown"
+  },
+  "Dimitrios Pallis": {
+    meta: "Visual Artist · Greece",
+    bio: "Dimitrios Pallis is a Greek visual artist working across photography, painting, and digital media. His work explores themes of identity, landscape, and the quiet beauty of everyday Greek life — finding the extraordinary in the ordinary with a thoughtful, measured eye.",
+    cap: "Every image Dimitrios Pallis makes is an invitation to look closer. 🎨\n\n#DreamingOfGreece #momentsgallery #GreekArt #DreamDowntown"
+  },
+  "Our Exploration": {
+    meta: "Photography Collective · Greece",
+    bio: "Our Exploration is a Greek photography collective dedicated to uncovering the wild, unfiltered beauty of Greece — from rugged mountain passes to hidden sea caves. Their collaborative work celebrates discovery and a deep love for the natural and cultural landscape of their homeland.",
+    cap: "Greece is endless when you know how to look. Our Exploration shows us the way. 🏔️🌊\n\n#DreamingOfGreece #momentsgallery #GreekNature #DreamDowntown"
+  },
+  "Charis Tsevis": {
+    meta: "Visual Designer & Mosaic Artist · Cyprus",
+    bio: "Charis Tsevis is a Greek visual designer internationally renowned for his intricate digital mosaics and neo-futuristic compositions. His client list includes Nike, Google, Ferrari, Time, Fortune, and Wired — and he has been named one of the 200 World's Best Illustrators by Lürzer's Archive four times.",
+    cap: "Charis Tsevis builds worlds from fragments — and every fragment is intentional. 🧩🎨\n\n#CharisTsevis #DreamingOfGreece #momentsgallery #DigitalArt #DreamDowntown"
+  },
+  "Caroline Rovithi": {
+    meta: "Conceptual Artist · Greece · All You Need Is Greece",
+    bio: "Born in Germany with Greek-German roots, Caroline Rovithi is the artist behind the rallying cry 'All You Need Is Greece.' A self-taught conceptual artist with a background in advertising, she channels Hellenism into bold, color-saturated pop art exhibited in Athens, Monaco, and New York.",
+    cap: "Bold colors. Bigger love. Caroline Rovithi makes art that bleeds Greek blue. 💙🇬🇷\n\n#CarolineRovithi #DreamingOfGreece #momentsgallery #GreekArt #AllYouNeedIsGreece"
+  }
+};
+
+var DAYS = [
+  {
+    day: "Mon", date: "Apr 14",
+    feed: [
+      { id:"mf1", name:"Influencer Reel", sub:"All 3 influencers — post today", cls:"ir" },
+      { id:"mf2", name:"INO", sub:"Artist in feed", cls:"af", artist:"INO" },
+      { id:"mf3", name:"Sponsor Carousel", sub:"Thank you + all sponsors", cls:"sf" }
+    ],
+    stories: [
+      { id:"ms1", name:"Evelyn — Sagapo NYC", sub:"Influencer story", cls:"is" },
+      { id:"ms2", name:"Wild Drawing", sub:"Artist story", cls:"as" },
+      { id:"ms3", name:"Gia Giamas", sub:"Sponsor story", cls:"ss" },
+      { id:"ms4", name:"Pegasus Wealth Mgmt", sub:"Sponsor story", cls:"ss" }
+    ]
+  },
+  {
+    day: "Tue", date: "Apr 15",
+    feed: [
+      { id:"tf1", name:"Wild Drawing", sub:"Artist in feed", cls:"af", artist:"Wild Drawing" },
+      { id:"tf2", name:"Charis Tsevis", sub:"Artist in feed", cls:"af", artist:"Charis Tsevis" }
+    ],
+    stories: [
+      { id:"ts1", name:"GLE — Greek Language Experts", sub:"Influencer story", cls:"is" },
+      { id:"ts2", name:"INO", sub:"Artist story", cls:"as" },
+      { id:"ts3", name:"Charis Tsevis", sub:"Artist story", cls:"as" },
+      { id:"ts4", name:"Greek Lawyers USA", sub:"Sponsor story", cls:"ss" },
+      { id:"ts5", name:"Telesto", sub:"Sponsor story", cls:"ss" }
+    ]
+  },
+  {
+    day: "Wed", date: "Apr 16",
+    feed: [
+      { id:"wf1", name:"Johan Lolos", sub:"Artist in feed", cls:"af", artist:"Johan Lolos" },
+      { id:"wf2", name:"George Tatakis", sub:"Artist in feed", cls:"af", artist:"George Tatakis" },
+      { id:"wf3", name:"Caroline Rovithi", sub:"Artist in feed", cls:"af", artist:"Caroline Rovithi" }
+    ],
+    stories: [
+      { id:"ws1", name:"Agapi Stassinopoulos", sub:"Influencer story", cls:"is" },
+      { id:"ws2", name:"Johan Lolos", sub:"Artist story", cls:"as" },
+      { id:"ws3", name:"George Tatakis", sub:"Artist story", cls:"as" },
+      { id:"ws4", name:"Gyro City — George K", sub:"Sponsor story", cls:"ss" },
+      { id:"ws5", name:"King Souvlaki", sub:"Sponsor story", cls:"ss" }
+    ]
+  },
+  {
+    day: "Thu", date: "Apr 17",
+    feed: [
+      { id:"hf1", name:"Aris Katsigiannis", sub:"Artist in feed", cls:"af", artist:"Aris Katsigiannis" },
+      { id:"hf2", name:"Stefanos Addimando", sub:"Artist in feed", cls:"af", artist:"Stefanos Addimando" },
+      { id:"hf3", name:"Ioakeim Koumousis", sub:"Artist in feed", cls:"af", artist:"Ioakeim Koumousis" }
+    ],
+    stories: [
+      { id:"hs1", name:"Caroline Rovithi", sub:"Artist story", cls:"as" },
+      { id:"hs2", name:"Aris Katsigiannis", sub:"Artist story", cls:"as" },
+      { id:"hs3", name:"Stefanos Addimando", sub:"Artist story", cls:"as" },
+      { id:"hs4", name:"A to Z Publishing", sub:"Sponsor story", cls:"ss" },
+      { id:"hs5", name:"Ellines Out West", sub:"Sponsor story", cls:"ss" }
+    ]
+  },
+  {
+    day: "Fri", date: "Apr 18",
+    feed: [
+      { id:"ff1", name:"Dimitrios Pallis", sub:"Artist in feed", cls:"af", artist:"Dimitrios Pallis" },
+      { id:"ff2", name:"Our Exploration", sub:"Artist in feed", cls:"af", artist:"Our Exploration" }
+    ],
+    stories: [
+      { id:"fs1", name:"Ioakeim Koumousis", sub:"Artist story", cls:"as" },
+      { id:"fs2", name:"Dimitrios Pallis", sub:"Artist story", cls:"as" },
+      { id:"fs3", name:"Our Exploration", sub:"Artist story", cls:"as" },
+      { id:"fs4", name:"Skiinni — Cleopatra", sub:"Sponsor story", cls:"ss" }
+    ]
+  }
+];
+
+var done = {};
+var activeBioId = null;
+
+function total() {
+  var t = 0;
+  DAYS.forEach(function(d){ t += d.feed.length + d.stories.length; });
+  return t;
+}
+
+function updateStats() {
+  var t = total();
+  var n = Object.keys(done).filter(function(k){ return done[k]; }).length;
+  document.getElementById('s-done').textContent = n;
+  document.getElementById('s-rem').textContent = t - n;
+  document.getElementById('s-pct').textContent = Math.round(n/t*100) + '%';
+  document.getElementById('pbfill').style.width = (n/t*100) + '%';
+}
+
+function toggleDone(id) {
+  done[id] = !done[id];
+  var el = document.getElementById('c-' + id);
+  if (el) { if (done[id]) el.classList.add('done'); else el.classList.remove('done'); }
+  updateStats();
+}
+
+function openBio(artist, id) {
+  var d = ARTISTS[artist];
+  if (!d) return;
+  activeBioId = id;
+  document.getElementById('bo-name').textContent = artist;
+  document.getElementById('bo-meta').textContent = d.meta;
+  document.getElementById('bo-bio').textContent = d.bio;
+  document.getElementById('bo-cap').textContent = d.cap;
+  document.getElementById('bo-mark').onclick = function(){ toggleDone(id); closeOverlay(); };
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').style.display = 'none';
+}
+
+document.getElementById('overlay').addEventListener('click', function(e){
+  if (e.target === this) closeOverlay();
+});
+
+var grid = document.getElementById('grid');
+
+DAYS.forEach(function(day) {
+  var col = document.createElement('div');
+  col.className = 'col';
+
+  var t = day.feed.length + day.stories.length;
+  var h = document.createElement('div');
+  h.className = 'day-head';
+  h.innerHTML = '<div class="dn">' + day.day + '</div><div class="dd">' + day.date + '</div><div class="dc">' + t + ' posts</div>';
+  col.appendChild(h);
+
+  var fl = document.createElement('div');
+  fl.className = 'sec';
+  fl.textContent = 'Feed';
+  col.appendChild(fl);
+
+  day.feed.forEach(function(p) {
+    var card = document.createElement('div');
+    card.className = 'card ' + p.cls;
+    card.id = 'c-' + p.id;
+
+    var typeLabel = (p.cls === 'ir') ? '▶ Reel' : '◼ Feed';
+    card.innerHTML = '<span class="ck">✓</span><div class="ct">' + typeLabel + '</div><div class="cn">' + p.name + '</div><div class="cs">' + p.sub + '</div>';
+
+    if (p.artist) {
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = 'tap for bio & caption';
+      card.appendChild(hint);
+
+      var mdb = document.createElement('span');
+      mdb.className = 'mdb';
+      mdb.textContent = 'mark as posted';
+      mdb.addEventListener('click', function(e){ e.stopPropagation(); toggleDone(p.id); });
+      card.appendChild(mdb);
+
+      card.addEventListener('click', function(){ openBio(p.artist, p.id); });
+    } else {
+      card.addEventListener('click', function(){ toggleDone(p.id); });
+    }
+
+    col.appendChild(card);
+  });
+
+  var sl = document.createElement('div');
+  sl.className = 'sec';
+  sl.style.marginTop = '5px';
+  sl.textContent = 'Stories';
+  col.appendChild(sl);
+
+  day.stories.forEach(function(p) {
+    var card = document.createElement('div');
+    card.className = 'card ' + p.cls;
+    card.id = 'c-' + p.id;
+    card.innerHTML = '<span class="ck">✓</span><div class="ct">◎ Story</div><div class="cn">' + p.name + '</div><div class="cs">' + p.sub + '</div>';
+    card.addEventListener('click', function(){ toggleDone(p.id); });
+    col.appendChild(card);
+  });
+
+  grid.appendChild(col);
+});
+
+updateStats();
+</script>
+</body>
+</html>
