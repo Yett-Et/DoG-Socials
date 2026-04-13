@@ -27,7 +27,7 @@ export default async function Home() {
             Dreaming of Greece — Social Calendar
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Apr 14–18 &nbsp;·&nbsp; moments.gallery &nbsp;·&nbsp; Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
+            Apr 13–17 &nbsp;·&nbsp; moments.gallery &nbsp;·&nbsp; Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
           </p>
         </div>
 

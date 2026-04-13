@@ -83,9 +83,9 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
 };
 
 export const DAYS = [
-  { name: 'Mon', date: 'Apr 14' },
-  { name: 'Tue', date: 'Apr 15' },
-  { name: 'Wed', date: 'Apr 16' },
-  { name: 'Thu', date: 'Apr 17' },
-  { name: 'Fri', date: 'Apr 18' },
+  { name: 'Mon', date: 'Apr 13' },
+  { name: 'Tue', date: 'Apr 14' },
+  { name: 'Wed', date: 'Apr 15' },
+  { name: 'Thu', date: 'Apr 16' },
+  { name: 'Fri', date: 'Apr 17' },
 ];
