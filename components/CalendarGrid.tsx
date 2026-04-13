@@ -93,9 +93,9 @@ export default function CalendarGrid({ initialPosts }: Props) {
     patchPost(postId, { is_posted: isPosted, posted_at: postedAt });
   }, []);
 
-  const handleSaveCaption = useCallback((postId: string, caption: string) => {
-    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, caption } : p)));
-    patchPost(postId, { caption });
+  const handleSave = useCallback((postId: string, updates: Partial<SocialPost>) => {
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, ...updates } : p)));
+    patchPost(postId, updates as Record<string, unknown>);
   }, []);
 
   const handleMoveDay = useCallback(
@@ -152,7 +152,7 @@ export default function CalendarGrid({ initialPosts }: Props) {
           post={selectedPost}
           onClose={handleCloseModal}
           onMarkPosted={handleMarkPosted}
-          onSaveCaption={handleSaveCaption}
+          onSave={handleSave}
           onMoveDay={handleMoveDay}
         />
       )}

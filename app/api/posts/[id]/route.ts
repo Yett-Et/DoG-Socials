@@ -11,6 +11,8 @@ export async function PATCH(
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if ('caption' in body) updates.caption = body.caption;
+  if ('bio' in body) updates.bio = body.bio;
+  if ('ig_handle' in body) updates.ig_handle = body.ig_handle;
   if ('day_index' in body) updates.day_index = body.day_index;
   if ('is_posted' in body) {
     updates.is_posted = body.is_posted;

@@ -7,33 +7,50 @@ type Props = {
   post: SocialPost;
   onClose: () => void;
   onMarkPosted: (postId: string, isPosted: boolean) => void;
-  onSaveCaption: (postId: string, caption: string) => void;
+  onSave: (postId: string, updates: Partial<SocialPost>) => void;
   onMoveDay: (postId: string, newDayIndex: number) => void;
 };
 
 function CopyIcon() {
   return (
     <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
     </svg>
   );
 }
 
-export default function PostModal({ post, onClose, onMarkPosted, onSaveCaption, onMoveDay }: Props) {
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+      {children}
+    </div>
+  );
+}
+
+function SaveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors"
+    >
+      Save
+    </button>
+  );
+}
+
+export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveDay }: Props) {
+  const [igHandle, setIgHandle] = useState(post.ig_handle ?? '');
+  const [bio, setBio] = useState(post.bio ?? '');
   const [caption, setCaption] = useState(post.caption ?? '');
-  const [captionChanged, setCaptionChanged] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Sync caption when post changes (e.g. after save)
+  // Sync fields when a different post is opened
   useEffect(() => {
+    setIgHandle(post.ig_handle ?? '');
+    setBio(post.bio ?? '');
     setCaption(post.caption ?? '');
-    setCaptionChanged(false);
-  }, [post.id, post.caption]);
+  }, [post.id]);
 
   // Close on Escape
   useEffect(() => {
@@ -49,21 +66,12 @@ export default function PostModal({ post, onClose, onMarkPosted, onSaveCaption, 
       await navigator.clipboard.writeText(text);
       setCopied(key);
       setTimeout(() => setCopied(null), 2000);
-    } catch {
-      // fallback: select the text
-    }
+    } catch { /* ignore */ }
   }, []);
 
-  function handleCaptionChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const val = e.target.value;
-    setCaption(val);
-    setCaptionChanged(val !== (post.caption ?? ''));
-  }
-
-  function handleSave() {
-    onSaveCaption(post.id, caption);
-    setCaptionChanged(false);
-  }
+  const igHandleChanged = igHandle !== (post.ig_handle ?? '');
+  const bioChanged = bio !== (post.bio ?? '');
+  const captionChanged = caption !== (post.caption ?? '');
 
   const typeStyle = POST_TYPE_STYLES[post.post_type];
 
@@ -88,9 +96,7 @@ export default function PostModal({ post, onClose, onMarkPosted, onSaveCaption, 
                 {typeStyle.icon} {typeStyle.label}
               </span>
               <h2 className="text-base font-bold text-gray-900 leading-tight">{post.name}</h2>
-              {post.subtitle && (
-                <p className="text-xs text-gray-500 mt-0.5">{post.subtitle}</p>
-              )}
+              {post.subtitle && <p className="text-xs text-gray-500 mt-0.5">{post.subtitle}</p>}
             </div>
             <button
               onClick={onClose}
@@ -104,90 +110,86 @@ export default function PostModal({ post, onClose, onMarkPosted, onSaveCaption, 
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+
           {/* IG Handle */}
-          {post.ig_handle && (
-            <div>
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                IG Handle
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                <span className="text-sm font-medium text-gray-700 flex-1">@{post.ig_handle}</span>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <FieldLabel>IG Handle</FieldLabel>
+              {igHandle && (
                 <button
-                  onClick={() => handleCopy(`@${post.ig_handle}`, 'handle')}
-                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700 whitespace-nowrap"
+                  onClick={() => handleCopy(`@${igHandle.replace(/^@/, '')}`, 'handle')}
+                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
                 >
-                  {copied === 'handle' ? (
-                    <span className="text-green-600">✓ Copied!</span>
-                  ) : (
-                    <><CopyIcon /> Copy</>
-                  )}
+                  {copied === 'handle'
+                    ? <span className="text-green-600">✓ Copied!</span>
+                    : <><CopyIcon /> Copy</>}
                 </button>
-              </div>
+              )}
             </div>
-          )}
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+              <span className="text-gray-400 text-sm">@</span>
+              <input
+                value={igHandle.replace(/^@/, '')}
+                onChange={(e) => setIgHandle(e.target.value)}
+                placeholder="handle"
+                className="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none"
+              />
+            </div>
+            {igHandleChanged && (
+              <SaveButton onClick={() => onSave(post.id, { ig_handle: igHandle.replace(/^@/, '') || null })} />
+            )}
+          </div>
 
           {/* Bio */}
-          {post.bio && (
-            <div>
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                Bio
-              </div>
-              <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 border border-gray-200 rounded-lg p-3">
-                {post.bio}
-              </p>
-            </div>
-          )}
+          <div>
+            <FieldLabel>Bio</FieldLabel>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={4}
+              placeholder="No bio yet — type one here..."
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+            />
+            {bioChanged && (
+              <SaveButton onClick={() => onSave(post.id, { bio: bio || null })} />
+            )}
+          </div>
 
           {/* Caption */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Caption Draft
-              </div>
+              <FieldLabel>Caption Draft</FieldLabel>
               {caption && (
                 <button
                   onClick={() => handleCopy(caption, 'caption')}
                   className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
                 >
-                  {copied === 'caption' ? (
-                    <span className="text-green-600">✓ Copied!</span>
-                  ) : (
-                    <><CopyIcon /> Copy caption</>
-                  )}
+                  {copied === 'caption'
+                    ? <span className="text-green-600">✓ Copied!</span>
+                    : <><CopyIcon /> Copy caption</>}
                 </button>
               )}
             </div>
             <textarea
               value={caption}
-              onChange={handleCaptionChange}
+              onChange={(e) => setCaption(e.target.value)}
               rows={6}
-              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
               placeholder="No caption yet — type one here..."
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             />
             {captionChanged && (
-              <button
-                onClick={handleSave}
-                className="mt-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-md transition-colors"
-              >
-                Save caption
-              </button>
+              <SaveButton onClick={() => onSave(post.id, { caption: caption || null })} />
             )}
           </div>
 
           {/* Move to day */}
           <div>
-            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-              Move to day
-            </div>
+            <FieldLabel>Move to day</FieldLabel>
             <div className="flex gap-1 flex-wrap">
               {DAYS.map((d, i) => (
                 <button
                   key={i}
-                  onClick={() => {
-                    if (i !== post.day_index) {
-                      onMoveDay(post.id, i);
-                    }
-                  }}
+                  onClick={() => { if (i !== post.day_index) onMoveDay(post.id, i); }}
                   className={[
                     'px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors',
                     post.day_index === i

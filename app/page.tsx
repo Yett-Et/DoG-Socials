@@ -3,6 +3,7 @@ import { POST_TYPE_STYLES } from '@/lib/types';
 import CalendarGrid from '@/components/CalendarGrid';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   const supabase = createClient();
