@@ -8,6 +8,7 @@ export type SocialPost = {
   ig_handle: string | null;
   bio: string | null;
   caption: string | null;
+  drive_link: string | null;
   position: number;
   is_posted: boolean;
   posted_at: string | null;

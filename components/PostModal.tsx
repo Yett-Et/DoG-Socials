@@ -129,6 +129,26 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
             </div>
           </div>
 
+          {/* Assets Folder */}
+          {post.drive_link && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <FieldLabel>Assets Folder</FieldLabel>
+                <a
+                  href={post.drive_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
+                >
+                  Open in Drive ↗
+                </a>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 truncate">
+                drive.google.com/drive/folders/…
+              </div>
+            </div>
+          )}
+
           {/* IG Handle */}
           <div>
             <div className="flex items-center justify-between mb-1">
