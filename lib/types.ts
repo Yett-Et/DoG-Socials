@@ -1,6 +1,6 @@
 export type SocialPost = {
   id: string;
-  day_index: number;       // 0=Mon Apr14 … 4=Fri Apr18
+  post_date: string;    // 'YYYY-MM-DD'
   section: 'feed' | 'story';
   post_type: 'af' | 'as' | 'sf' | 'ss' | 'is' | 'ir';
   name: string;
@@ -23,7 +23,7 @@ export type PostTypeStyle = {
   labelColor: string;
   dotColor: string;
   icon: string;
-  color: string; // hex, used for solid badge backgrounds
+  color: string;
 };
 
 export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
@@ -83,10 +83,34 @@ export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
   },
 };
 
-export const DAYS = [
-  { name: 'Mon', date: 'Apr 13' },
-  { name: 'Tue', date: 'Apr 14' },
-  { name: 'Wed', date: 'Apr 15' },
-  { name: 'Thu', date: 'Apr 16' },
-  { name: 'Fri', date: 'Apr 17' },
-];
+export type WeekDay = {
+  name: string;   // 'Mon', 'Tue', etc.
+  date: string;   // 'YYYY-MM-DD'
+  label: string;  // 'Apr 13'
+};
+
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun, 1=Mon, ...
+  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function getWeekDays(weekStart: Date): WeekDay[] {
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return dayNames.map((name, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return {
+      name,
+      date: toISODate(d),
+      label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    };
+  });
+}

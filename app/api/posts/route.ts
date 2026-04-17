@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const { data: existing } = await supabase
     .from('social_calendar_posts')
     .select('position')
-    .eq('day_index', body.day_index)
+    .eq('post_date', body.post_date)
     .eq('section', body.section)
     .order('position', { ascending: false })
     .limit(1);
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       post_type: body.post_type,
       section: body.section,
       name: body.name,
-      day_index: body.day_index,
+      post_date: body.post_date,
       ig_handle: body.ig_handle ?? null,
       drive_link: body.drive_link ?? null,
       bio: body.bio ?? null,

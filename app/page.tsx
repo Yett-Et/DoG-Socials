@@ -10,7 +10,7 @@ export default async function Home() {
   const { data: posts, error } = await supabase
     .from('social_calendar_posts')
     .select('*')
-    .order('day_index', { ascending: true })
+    .order('post_date', { ascending: true })
     .order('section', { ascending: false }) // 'story' after 'feed'
     .order('position', { ascending: true });
 
@@ -27,7 +27,7 @@ export default async function Home() {
             Dreaming of Greece — Social Calendar
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Apr 13–17 &nbsp;·&nbsp; moments.gallery &nbsp;·&nbsp; Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
+            moments.gallery &nbsp;·&nbsp; Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
           </p>
         </div>
 

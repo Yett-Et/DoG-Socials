@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SocialPost, POST_TYPE_STYLES, DAYS } from '@/lib/types';
+import { SocialPost, POST_TYPE_STYLES, WeekDay } from '@/lib/types';
 
 type Props = {
   post: SocialPost;
+  weekDays: WeekDay[];
   onClose: () => void;
   onMarkPosted: (postId: string, isPosted: boolean) => void;
   onSave: (postId: string, updates: Partial<SocialPost>) => void;
-  onMoveDay: (postId: string, newDayIndex: number) => void;
+  onMoveDay: (postId: string, newDate: string) => void;
   onDelete: (postId: string) => void;
 };
 
@@ -40,7 +41,7 @@ function SaveButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveDay, onDelete }: Props) {
+export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSave, onMoveDay, onDelete }: Props) {
   const [igHandle, setIgHandle] = useState(post.ig_handle ?? '');
   const [driveLink, setDriveLink] = useState(post.drive_link ?? '');
   const [bio, setBio] = useState(post.bio ?? '');
@@ -248,19 +249,19 @@ export default function PostModal({ post, onClose, onMarkPosted, onSave, onMoveD
           <div>
             <FieldLabel>Move to day</FieldLabel>
             <div className="flex gap-1 flex-wrap">
-              {DAYS.map((d, i) => (
+              {weekDays.map((d) => (
                 <button
-                  key={i}
-                  onClick={() => { if (i !== post.day_index) onMoveDay(post.id, i); }}
+                  key={d.date}
+                  onClick={() => { if (d.date !== post.post_date) onMoveDay(post.id, d.date); }}
                   className={[
                     'px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors',
-                    post.day_index === i
+                    post.post_date === d.date
                       ? 'bg-gray-800 text-white border-gray-800'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50',
                   ].join(' ')}
                 >
                   {d.name}
-                  <span className="ml-1 font-normal opacity-60">{d.date.split(' ')[1]}</span>
+                  <span className="ml-1 font-normal opacity-60">{d.label.split(' ')[1]}</span>
                 </button>
               ))}
             </div>

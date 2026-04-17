@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SocialPost, POST_TYPE_STYLES, DAYS } from '@/lib/types';
+import { SocialPost, POST_TYPE_STYLES, WeekDay } from '@/lib/types';
 
 const TYPE_SECTION: Record<string, 'feed' | 'story'> = {
   af: 'feed',
@@ -21,14 +21,15 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 type Props = {
+  weekDays: WeekDay[];
   onClose: () => void;
   onCreated: (post: SocialPost) => void;
 };
 
-export default function AddPostModal({ onClose, onCreated }: Props) {
+export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
   const [postType, setPostType] = useState('af');
   const [name, setName] = useState('');
-  const [dayIndex, setDayIndex] = useState(0);
+  const [postDate, setPostDate] = useState(() => weekDays[0].date);
   const [igHandle, setIgHandle] = useState('');
   const [driveLink, setDriveLink] = useState('');
   const [bio, setBio] = useState('');
@@ -54,7 +55,7 @@ export default function AddPostModal({ onClose, onCreated }: Props) {
           post_type: postType,
           section: TYPE_SECTION[postType],
           name: name.trim(),
-          day_index: dayIndex,
+          post_date: postDate,
           ig_handle: igHandle.replace(/^@/, '') || null,
           drive_link: driveLink || null,
           bio: bio || null,
@@ -66,7 +67,7 @@ export default function AddPostModal({ onClose, onCreated }: Props) {
     } finally {
       setSaving(false);
     }
-  }, [postType, name, dayIndex, igHandle, driveLink, bio, caption, onCreated]);
+  }, [postType, name, postDate, igHandle, driveLink, bio, caption, onCreated]);
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -75,7 +76,6 @@ export default function AddPostModal({ onClose, onCreated }: Props) {
         className="w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex-shrink-0 p-4 border-b bg-gray-50">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-gray-900">New Post</h2>
@@ -89,7 +89,6 @@ export default function AddPostModal({ onClose, onCreated }: Props) {
           </div>
         </div>
 
-        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
 
           {/* Post Type */}
@@ -129,19 +128,19 @@ export default function AddPostModal({ onClose, onCreated }: Props) {
           <div>
             <FieldLabel>Day</FieldLabel>
             <div className="flex gap-1 flex-wrap">
-              {DAYS.map((d, i) => (
+              {weekDays.map((d) => (
                 <button
-                  key={i}
-                  onClick={() => setDayIndex(i)}
+                  key={d.date}
+                  onClick={() => setPostDate(d.date)}
                   className={[
                     'px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors',
-                    dayIndex === i
+                    postDate === d.date
                       ? 'bg-gray-800 text-white border-gray-800'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50',
                   ].join(' ')}
                 >
                   {d.name}
-                  <span className="ml-1 font-normal opacity-60">{d.date.split(' ')[1]}</span>
+                  <span className="ml-1 font-normal opacity-60">{d.label.split(' ')[1]}</span>
                 </button>
               ))}
             </div>
@@ -206,7 +205,6 @@ export default function AddPostModal({ onClose, onCreated }: Props) {
 
         </div>
 
-        {/* Footer */}
         <div className="flex-shrink-0 p-4 border-t bg-gray-50">
           <button
             onClick={handleCreate}
