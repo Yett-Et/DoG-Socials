@@ -127,8 +127,6 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
     } catch { /* ignore */ }
   }, [onTagDeleted, selectedTags]);
 
-  const availableTags = tags.filter((t) => !selectedTags.includes(t.name));
-
   const handleCreate = useCallback(async () => {
     if (!name.trim()) return;
     setSaving(true);
@@ -214,35 +212,34 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
             </div>
           </div>
 
-          {/* Tags — right under post type */}
+          {/* Tags — right under post type, unified toggleable */}
           <div>
             <FieldLabel>Tags</FieldLabel>
-            {selectedTags.length > 0 && (
+            {tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
-                {selectedTags.map((tagName) => {
-                  const tag = tags.find((t) => t.name === tagName);
-                  const color = tag?.color ?? '#6b7280';
+                {tags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag.name);
                   return (
-                    <span key={tagName} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
-                      {tagName}
-                      <button onClick={() => removeTag(tagName)} className="opacity-70 hover:opacity-100 leading-none">×</button>
-                    </span>
+                    <div key={tag.id} className="inline-flex items-center rounded-full border overflow-hidden text-[10px] font-semibold transition-colors"
+                      style={{ borderColor: tag.color, backgroundColor: isSelected ? tag.color : 'transparent' }}>
+                      <button
+                        onClick={() => isSelected ? removeTag(tag.name) : addTag(tag.name)}
+                        className="pl-2 pr-1 py-0.5 hover:opacity-75 transition-opacity"
+                        style={{ color: isSelected ? '#fff' : tag.color }}
+                      >
+                        {isSelected ? '✓ ' : '+ '}{tag.name}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
+                        className="pr-1.5 py-0.5 opacity-40 hover:opacity-100 hover:text-red-400 transition-all leading-none"
+                        style={{ color: isSelected ? '#fff' : tag.color }}
+                        title="Delete tag"
+                      >
+                        ×
+                      </button>
+                    </div>
                   );
                 })}
-              </div>
-            )}
-            {availableTags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {availableTags.map((tag) => (
-                  <div key={tag.id} className="inline-flex items-center rounded-full border overflow-hidden text-[10px] font-semibold" style={{ borderColor: tag.color, color: tag.color }}>
-                    <button onClick={() => addTag(tag.name)} className="pl-2 pr-1 py-0.5 hover:opacity-70 transition-opacity">
-                      + {tag.name}
-                    </button>
-                    <button onClick={() => handleDeleteTag(tag)} className="pr-1.5 py-0.5 opacity-30 hover:opacity-100 hover:text-red-500 transition-all leading-none" title="Delete tag">
-                      ×
-                    </button>
-                  </div>
-                ))}
               </div>
             )}
             <input
@@ -284,10 +281,9 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
             {selectedHandles.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {selectedHandles.map((h) => (
-                  <span key={h} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-white">
-                    @{h}
-                    <button onClick={() => toggleHandle(h)} className="opacity-70 hover:opacity-100 leading-none">×</button>
-                  </span>
+                  <button key={h} onClick={() => toggleHandle(h)} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-white hover:bg-gray-500 transition-colors">
+                    @{h} <span className="opacity-60">×</span>
+                  </button>
                 ))}
               </div>
             )}

@@ -17,6 +17,7 @@ export async function PATCH(
   if ('event_link' in body) updates.event_link = body.event_link;
   if ('tags' in body) updates.tags = body.tags;
   if ('post_date' in body) updates.post_date = body.post_date;
+  if ('name' in body) updates.name = body.name;
   if ('is_posted' in body) {
     updates.is_posted = body.is_posted;
     updates.posted_at = body.is_posted ? new Date().toISOString() : null;
