@@ -16,9 +16,10 @@ type Props = {
   onClose: () => void;
   onCreated: (post: SocialPost) => void;
   onTagCreated: (tag: Tag) => void;
+  onTagUpdated: (tag: Tag) => void;
 };
 
-export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }: Props) {
+export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, onTagUpdated }: Props) {
   const today = toISODateStr(new Date());
 
   const [postType, setPostType] = useState('feed');
@@ -112,9 +113,10 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
   const handleCreate = useCallback(async () => {
     if (!name.trim()) return;
     setSaving(true);
-    const igHandleValue = selectedHandles.length > 0
-      ? selectedHandles.join(', ')
-      : (handleInput.replace(/^@/, '').trim() || null);
+    const handlesList = selectedHandles.length > 0
+      ? selectedHandles
+      : (handleInput.replace(/^@/, '').trim() ? [handleInput.replace(/^@/, '').trim()] : []);
+    const igHandleValue = handlesList.length > 0 ? handlesList.join(' ') : null;
     try {
       const res = await fetch('/api/posts', {
         method: 'POST',
@@ -134,10 +136,27 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
       });
       const newPost = await res.json();
       onCreated(newPost);
+      // Save handles back to each selected tag for future suggestions
+      if (handlesList.length > 0) {
+        for (const tagName of selectedTags) {
+          const tag = tags.find((t) => t.name === tagName);
+          if (!tag) continue;
+          const merged = Array.from(new Set([...tag.handles, ...handlesList]));
+          if (merged.some((h) => !tag.handles.includes(h))) {
+            fetch(`/api/tags/${tag.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ handles: merged }),
+            }).then((r) => r.ok ? r.json() : null)
+              .then((updated) => { if (updated) onTagUpdated(updated); })
+              .catch(() => {});
+          }
+        }
+      }
     } finally {
       setSaving(false);
     }
-  }, [postType, name, postDate, selectedHandles, handleInput, driveLink, eventLink, bio, caption, showEventLink, showDescription, selectedTags, onCreated]);
+  }, [postType, name, postDate, selectedHandles, handleInput, driveLink, eventLink, bio, caption, showEventLink, showDescription, selectedTags, tags, onCreated, onTagUpdated]);
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>

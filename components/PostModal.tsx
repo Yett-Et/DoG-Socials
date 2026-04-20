@@ -12,6 +12,7 @@ type Props = {
   onMoveDay: (postId: string, newDate: string) => void;
   onDelete: (postId: string) => void;
   onTagCreated: (tag: Tag) => void;
+  onTagUpdated: (tag: Tag) => void;
 };
 
 function CopyIcon() {
@@ -42,7 +43,24 @@ function SaveButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete, onTagCreated }: Props) {
+function splitHandles(raw: string): string[] {
+  return raw.split(/[\s,]+/).map((h) => h.replace(/^@/, '').trim()).filter(Boolean);
+}
+
+async function mergeHandlesIntoTag(tag: Tag, newHandles: string[], onTagUpdated: (t: Tag) => void) {
+  const merged = Array.from(new Set([...tag.handles, ...newHandles]));
+  if (merged.length === tag.handles.length && merged.every((h) => tag.handles.includes(h))) return;
+  try {
+    const res = await fetch(`/api/tags/${tag.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handles: merged }),
+    });
+    if (res.ok) onTagUpdated(await res.json());
+  } catch { /* ignore */ }
+}
+
+export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete, onTagCreated, onTagUpdated }: Props) {
   const [igHandle, setIgHandle] = useState(post.ig_handle ?? '');
   const [driveLink, setDriveLink] = useState(post.drive_link ?? '');
   const [eventLink, setEventLink] = useState(post.event_link ?? '');
@@ -89,6 +107,18 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
   const captionChanged = caption !== (post.caption ?? '');
 
   const typeStyle = POST_TYPE_STYLES[post.post_type] ?? POST_TYPE_STYLES['feed'];
+
+  const handleSaveIgHandle = useCallback(() => {
+    const clean = igHandle.replace(/^@/, '').trim() || null;
+    onSave(post.id, { ig_handle: clean });
+    if (clean && postTags.length > 0) {
+      const handles = splitHandles(clean);
+      for (const tagName of postTags) {
+        const tag = tags.find((t) => t.name === tagName);
+        if (tag) mergeHandlesIntoTag(tag, handles, onTagUpdated);
+      }
+    }
+  }, [igHandle, post.id, postTags, tags, onSave, onTagUpdated]);
 
   // Tags helpers
   const addTag = useCallback(async (tagName: string) => {
@@ -293,7 +323,10 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
               <FieldLabel>IG Handle</FieldLabel>
               {igHandle && (
                 <button
-                  onClick={() => handleCopy(`@${igHandle.replace(/^@/, '')}`, 'handle')}
+                  onClick={() => {
+                    const handles = splitHandles(igHandle);
+                    handleCopy(handles.map((h) => `@${h}`).join(' '), 'handle');
+                  }}
                   className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
                 >
                   {copied === 'handle'
@@ -333,7 +366,7 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
               </div>
             )}
             {igHandleChanged && (
-              <SaveButton onClick={() => onSave(post.id, { ig_handle: igHandle.replace(/^@/, '') || null })} />
+              <SaveButton onClick={handleSaveIgHandle} />
             )}
           </div>
 
