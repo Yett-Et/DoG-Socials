@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SocialPost, Tag, POST_TYPE_STYLES, TYPE_SECTION, toISODateStr } from '@/lib/types';
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -24,7 +24,8 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
   const [postType, setPostType] = useState('feed');
   const [name, setName] = useState('');
   const [postDate, setPostDate] = useState(today);
-  const [igHandle, setIgHandle] = useState('');
+  const [selectedHandles, setSelectedHandles] = useState<string[]>([]);
+  const [handleInput, setHandleInput] = useState('');
   const [driveLink, setDriveLink] = useState('');
   const [eventLink, setEventLink] = useState('');
   const [bio, setBio] = useState('');
@@ -43,14 +44,36 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Handles suggested by the currently selected tags
+  const suggestedHandles = useMemo(() => {
+    const all = new Set<string>();
+    for (const tagName of selectedTags) {
+      const tag = tags.find((t) => t.name === tagName);
+      if (tag) tag.handles.forEach((h) => all.add(h));
+    }
+    return [...all].sort();
+  }, [selectedTags, tags]);
+
+  const toggleHandle = useCallback((handle: string) => {
+    setSelectedHandles((prev) =>
+      prev.includes(handle) ? prev.filter((h) => h !== handle) : [...prev, handle]
+    );
+  }, []);
+
+  const addHandleFromInput = useCallback(() => {
+    const h = handleInput.replace(/^@/, '').trim();
+    if (h && !selectedHandles.includes(h)) {
+      setSelectedHandles((prev) => [...prev, h]);
+    }
+    setHandleInput('');
+  }, [handleInput, selectedHandles]);
+
   const addTag = useCallback(async (tagName: string) => {
     const trimmed = tagName.trim();
     if (!trimmed || selectedTags.includes(trimmed)) return;
 
-    const newSelected = [...selectedTags, trimmed];
-    setSelectedTags(newSelected);
+    setSelectedTags((prev) => [...prev, trimmed]);
 
-    // Auto-fill event_link if blank and tag has one
     const existingTag = tags.find((t) => t.name === trimmed);
     if (existingTag) {
       if (!eventLink && existingTag.event_link) {
@@ -58,7 +81,6 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
         if (!showEventLink) setShowEventLink(true);
       }
     } else {
-      // Create new tag in DB
       try {
         const res = await fetch('/api/tags', {
           method: 'POST',
@@ -90,6 +112,9 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
   const handleCreate = useCallback(async () => {
     if (!name.trim()) return;
     setSaving(true);
+    const igHandleValue = selectedHandles.length > 0
+      ? selectedHandles.join(', ')
+      : (handleInput.replace(/^@/, '').trim() || null);
     try {
       const res = await fetch('/api/posts', {
         method: 'POST',
@@ -99,7 +124,7 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
           section: TYPE_SECTION[postType],
           name: name.trim(),
           post_date: postDate,
-          ig_handle: igHandle.replace(/^@/, '') || null,
+          ig_handle: igHandleValue,
           drive_link: driveLink || null,
           event_link: showEventLink ? (eventLink || null) : null,
           bio: showDescription ? (bio || null) : null,
@@ -112,7 +137,7 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
     } finally {
       setSaving(false);
     }
-  }, [postType, name, postDate, igHandle, driveLink, eventLink, bio, caption, showEventLink, showDescription, selectedTags, onCreated]);
+  }, [postType, name, postDate, selectedHandles, handleInput, driveLink, eventLink, bio, caption, showEventLink, showDescription, selectedTags, onCreated]);
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -124,13 +149,7 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
         <div className="flex-shrink-0 p-4 border-b bg-gray-50">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-gray-900">New Post</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-700 text-2xl leading-none font-light"
-              aria-label="Close"
-            >
-              ×
-            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none font-light" aria-label="Close">×</button>
           </div>
         </div>
 
@@ -189,19 +208,9 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
                   const tag = tags.find((t) => t.name === tagName);
                   const color = tag?.color ?? '#6b7280';
                   return (
-                    <span
-                      key={tagName}
-                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: color }}
-                    >
+                    <span key={tagName} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
                       {tagName}
-                      <button
-                        onClick={() => removeTag(tagName)}
-                        className="opacity-70 hover:opacity-100 leading-none"
-                        aria-label={`Remove tag ${tagName}`}
-                      >
-                        ×
-                      </button>
+                      <button onClick={() => removeTag(tagName)} className="opacity-70 hover:opacity-100 leading-none">×</button>
                     </span>
                   );
                 })}
@@ -215,9 +224,7 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
                   onChange={(e) => { if (e.target.value) { addTag(e.target.value); e.target.value = ''; } }}
                 >
                   <option value="">Add tag…</option>
-                  {availableTags.map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
-                  ))}
+                  {availableTags.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
                 </select>
               )}
               <input
@@ -231,32 +238,67 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
             </div>
           </div>
 
-          {/* IG Handle */}
+          {/* IG Handle(s) */}
           <div>
-            <FieldLabel>IG Handle</FieldLabel>
+            <FieldLabel>IG Handle{selectedHandles.length > 1 ? 's' : ''}</FieldLabel>
+
+            {/* Selected handles as chips */}
+            {selectedHandles.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedHandles.map((h) => (
+                  <span key={h} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-white">
+                    @{h}
+                    <button onClick={() => toggleHandle(h)} className="opacity-70 hover:opacity-100 leading-none">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Freeform input */}
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
               <span className="text-gray-400 text-sm">@</span>
               <input
-                value={igHandle.replace(/^@/, '')}
-                onChange={(e) => setIgHandle(e.target.value)}
-                placeholder="handle"
+                value={handleInput.replace(/^@/, '')}
+                onChange={(e) => setHandleInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addHandleFromInput(); } }}
+                onBlur={addHandleFromInput}
+                placeholder="type handle and press Enter"
                 className="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none"
               />
             </div>
+
+            {/* Suggested handles from selected tags */}
+            {suggestedHandles.length > 0 && (
+              <div className="mt-2">
+                <div className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">From tag</div>
+                <div className="flex flex-wrap gap-1">
+                  {suggestedHandles.map((h) => {
+                    const active = selectedHandles.includes(h);
+                    return (
+                      <button
+                        key={h}
+                        onClick={() => toggleHandle(h)}
+                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded border transition-colors"
+                        style={{
+                          backgroundColor: active ? '#374151' : '#f9fafb',
+                          color: active ? '#fff' : '#6b7280',
+                          borderColor: active ? '#374151' : '#e5e7eb',
+                        }}
+                      >
+                        @{h}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Event Link (toggleable) */}
           <div>
             <label className="flex items-center gap-2 cursor-pointer mb-2">
-              <input
-                type="checkbox"
-                checked={showEventLink}
-                onChange={(e) => setShowEventLink(e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Event Link
-              </span>
+              <input type="checkbox" checked={showEventLink} onChange={(e) => setShowEventLink(e.target.checked)} className="rounded" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Event Link</span>
             </label>
             {showEventLink && (
               <input
@@ -282,15 +324,8 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
           {/* Description (toggleable) */}
           <div>
             <label className="flex items-center gap-2 cursor-pointer mb-2">
-              <input
-                type="checkbox"
-                checked={showDescription}
-                onChange={(e) => setShowDescription(e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Description
-              </span>
+              <input type="checkbox" checked={showDescription} onChange={(e) => setShowDescription(e.target.checked)} className="rounded" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Description</span>
             </label>
             {showDescription && (
               <textarea

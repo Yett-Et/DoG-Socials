@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SocialPost, Tag, POST_TYPE_STYLES } from '@/lib/types';
 
 type Props = {
@@ -137,6 +137,16 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
   }, [newTagInput, addTag]);
 
   const availableTags = tags.filter((t) => !postTags.includes(t.name));
+
+  // Handles suggested by the post's current tags
+  const suggestedHandles = useMemo(() => {
+    const all = new Set<string>();
+    for (const tagName of postTags) {
+      const tag = tags.find((t) => t.name === tagName);
+      if (tag) tag.handles.forEach((h) => all.add(h));
+    }
+    return [...all].sort();
+  }, [postTags, tags]);
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -301,6 +311,27 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
                 className="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none"
               />
             </div>
+            {suggestedHandles.length > 0 && (
+              <div className="mt-2">
+                <div className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">From tag</div>
+                <div className="flex flex-wrap gap-1">
+                  {suggestedHandles.map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setIgHandle(h)}
+                      className={[
+                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border transition-colors',
+                        igHandle.replace(/^@/, '') === h
+                          ? 'bg-gray-700 text-white border-gray-700'
+                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-400',
+                      ].join(' ')}
+                    >
+                      @{h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {igHandleChanged && (
               <SaveButton onClick={() => onSave(post.id, { ig_handle: igHandle.replace(/^@/, '') || null })} />
             )}
