@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Dreaming of Greece — Social Calendar',
-  description: 'Social media posting calendar for the Dreaming of Greece event, Apr 14–18',
+  title: 'Moments. Gallery — Social Calendar',
+  description: 'Social media planning calendar for campaigns and events',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

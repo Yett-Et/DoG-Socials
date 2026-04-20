@@ -27,7 +27,7 @@ export default async function Home() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <img
-            src="/logo.svg"
+            src="/logo.png"
             alt="Moments. Gallery"
             className="h-10 w-auto flex-shrink-0"
           />
