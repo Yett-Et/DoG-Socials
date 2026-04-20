@@ -1,42 +1,54 @@
-# Dreaming of Greece — Social Calendar
+# Social Calendar — moments.gallery
 
-An internal tool for managing the social media posting schedule for the **Dreaming of Greece** exhibition at Moments Gallery, Dream Downtown NYC (Opening Night: Saturday April 18th).
+A general-purpose social media planning tool for managing Instagram posting schedules across campaigns, events, and projects.
 
-Built for Vasia to handle all posting across artists, sponsors, and influencers during the week of April 13–17.
+Built with a rolling weekly calendar, drag-and-drop rescheduling, and a tag/project system for organizing posts by event or campaign.
 
 ---
 
 ## What It Does
 
-The app displays a 5-day calendar grid (Mon–Fri) showing every social media post planned for the week. Each post is a card you can tap to open a detail panel where you can copy captions, view bios, grab Drive links, and mark posts as done.
+The app displays a scrollable weekly calendar grid showing every planned social media post. Each post is a card you can tap to open a detail panel where you can edit captions, view bios, grab asset links, and mark posts as done.
 
 **Core features:**
 
-- **5-day calendar grid** — Mon Apr 13 through Fri Apr 17, each column showing that day's feed and story posts
-- **Color-coded post types** — 6 types at a glance (see legend below)
-- **Tap any card** to open the detail panel (bio, caption, IG handle, Drive link, event link)
-- **One-tap copy** for IG handle, bio, caption, and event link
+- **Rolling weekly calendar** — navigate forward/backward by week, jump to today
+- **Color-coded post types** — 4 types at a glance (Feed, Carousel, Reel, Story)
+- **Tags / projects** — group posts by event or campaign; tags carry metadata (event link, associated IG handles)
+- **Tap any card** to open the detail panel (description, caption, IG handle, assets link, event link, tags)
+- **One-tap copy** for IG handle, description, caption, and event link
 - **Mark as Posted** — cards fade and get a checkmark; persists across refreshes
 - **Drag cards** between day columns to reschedule
-- **Add new posts** — create any post type directly from the UI
+- **Add new posts** — create any post type with a date picker
 - **Delete posts** — two-step confirmation to avoid accidents
-- **Edit everything** — bio, caption, IG handle, and assets folder link are all editable inline
-- **Progress bar** — shows how many posts have been marked as done
+- **Edit everything** — all fields are editable inline with auto-save
 
 ---
 
 ## Post Types
 
-| Badge | Type | Used For |
+| Badge | Type | Section |
 |---|---|---|
-| ◼ Artist Feed | `af` | Artists' feed posts (carousel / single image) |
-| ◎ Artist Story | `as` | Artists' story posts |
-| ◼ Sponsor Feed | `sf` | Sponsor carousel (one combined post) |
-| ◎ Sponsor Story | `ss` | Individual sponsor story tags |
-| ◎ Influencer Story | `is` | Influencer story tags |
-| ▶ Influencer Reel | `ir` | Influencer reel (one combined post) |
+| ◼ Feed | `feed` | Feed |
+| ▦ Carousel | `carousel` | Feed |
+| ▶ Reel | `reel` | Feed |
+| ◎ Story | `story` | Stories |
 
-Feed posts (`af`, `sf`, `ir`) appear in the **Feed** section of each day column. Story posts (`as`, `ss`, `is`) appear in the **Stories** section below.
+Feed, Carousel, and Reel posts appear in the **Feed** section of each day column. Story posts appear in the **Stories** section below.
+
+---
+
+## Tags / Projects
+
+Tags are the primary way to organize posts by event or campaign (e.g. "Dreaming of Greece", "Summer Launch").
+
+Each tag can store:
+- **Name** — displayed as a colored chip on each post card
+- **Event Link** — automatically applied to new posts when the tag is selected
+- **Handles** — list of IG handles associated with this tag; shown as clickable chips in the handle picker
+- **Color** — pill color for visual identification
+
+Tags are created on the fly — just type a new name in the tag field and press Enter.
 
 ---
 
@@ -44,82 +56,63 @@ Feed posts (`af`, `sf`, `ir`) appear in the **Feed** section of each day column.
 
 ### Browsing the Calendar
 
-The calendar loads showing all 43 posts across the 5 days. Each card shows:
-- The post type badge (color-coded)
-- The person/brand name
-- Their IG handle if available
+Use the **← →** arrows to navigate weeks, or click **Today** to jump back to the current week. Each day column shows Feed posts on top and Story posts below.
+
+Each card shows:
+- Post type badge (color-coded)
+- Name
+- IG handle (if set)
+- Tag chips
 - A faded look + ✓ if already marked as posted
 
 ### Opening a Post
 
-Tap any card to open the detail panel on the right. From here you can:
+Tap any card to open the detail panel. From here you can:
 
 **Copy things:**
-- **Event Link** — copies the Partiful RSVP link to clipboard
+- **Event Link** — copies the event RSVP link to clipboard
 - **IG Handle** — copies `@handle` ready to paste into Instagram
-- **Bio** — copies the full bio text
-- **Caption Draft** — copies the full caption ready to paste into Instagram
+- **Description** — copies the full bio/description text
+- **Caption Draft** — copies the full caption
 
 **Edit things:**
-- **IG Handle** — type a new handle, a Save button appears
-- **Assets Folder** — paste a Google Drive link, a Save button appears; the "Open in Drive ↗" link updates immediately
-- **Bio** — edit directly, Save when done
+- **IG Handle** — type a new handle; a Save button appears
+- **Assets Link** — paste a Google Drive link; the "Open ↗" link updates immediately
+- **Event Link** — edit per-post; a Save button appears when changed
+- **Description** — edit directly, Save when done
 - **Caption Draft** — edit directly, Save when done
+- **Tags** — add/remove tags via dropdown or freeform input; selecting a tag auto-fills its event link and surfaces its handles
 
 All saves persist immediately to the database — no page refresh needed.
 
 **Move to a different day:**
-- Use the day buttons at the bottom of the panel to move the post. The card jumps to the new column instantly.
+Use the date picker at the bottom of the panel to move the post to any date. The card jumps to the new column instantly.
 
 **Mark as Posted:**
-- Big green button at the bottom of the panel. Tap once to mark done, tap again to unmark. The card on the grid will fade out to show it's been handled.
+Big green button at the bottom of the panel. Tap once to mark done, tap again to unmark.
 
 **Delete a post:**
-- Red "Delete post" button below the green button. Tapping it shows a "Confirm Delete / Cancel" prompt to prevent accidents.
+Red "Delete post" button below the green button — shows a confirm prompt to prevent accidents.
 
 ### Dragging Posts
 
-You can also drag any card directly to a different day column without opening the panel. The card moves instantly and the change is saved to the database in the background.
+Drag any card directly to a different day column without opening the panel. The card moves instantly and the change saves in the background.
 
 ### Adding a New Post
 
-Click the **+ New Post** button above the calendar grid. A form panel slides in with:
-- **Post Type** — click one of the 6 colored badges to select
-- **Name** — the artist, sponsor, or influencer name (required)
-- **Day** — which day to place it on
-- **IG Handle** — without the @
-- **Event Link** — always pre-filled (shown as info, not editable here)
-- **Assets Folder** — paste a Google Drive link
-- **Bio** — write the bio
+Click **+ New Post** above the calendar grid. A form panel slides in with:
+
+- **Post Type** — click one of the 4 colored buttons (Feed, Carousel, Reel, Story)
+- **Name** — the person, brand, or account name (required)
+- **Date** — date picker to place it on any day
+- **Tags** — select existing tags or type to create new ones; selecting a tag auto-fills its event link and suggests its handles
+- **IG Handle(s)** — type freeform or click suggested handles from selected tags
+- **Event Link** — optional; toggle with checkbox; auto-filled when a tag is selected
+- **Assets Link** — paste a Google Drive link
+- **Description** — optional; toggle with checkbox
 - **Caption Draft** — write or paste the full caption
 
 Click **Create Post** and it appears in the correct day column immediately.
-
----
-
-## Caption Format
-
-All captions follow this consistent structure (established by the Our Exploration post):
-
-```
-@handle
-
-[2–3 sentence bio in punchy, evocative style — starts with "A [descriptor] who..."]
-
-Part of Dreaming of Greece, a curated exhibition of contemporary Greek voices shaping culture today.
-
-Opening Night
-Saturday April 18th
-@dreamdowntown NYC
-
-[RSVP link in bio]
-
-Exhibition on view for two weeks following opening
-
-#momentsgallerynyc #dreamingofgreece #[relevant tags per post type]
-```
-
-Sponsor posts use "Proud supporter of Dreaming of Greece..." instead of "Part of Dreaming of Greece..."
 
 ---
 
@@ -137,27 +130,37 @@ Sponsor posts use "Proud supporter of Dreaming of Greece..." instead of "Part of
 
 ## Database
 
-All posts live in a single Supabase table: `social_calendar_posts`
+### `social_calendar_posts`
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | UUID | Primary key |
-| `day_index` | Integer | 0 = Mon Apr 13 … 4 = Fri Apr 17 |
+| `post_date` | Date | The scheduled date (`YYYY-MM-DD`) |
 | `section` | Text | `feed` or `story` |
-| `post_type` | Text | `af`, `as`, `sf`, `ss`, `is`, `ir` |
+| `post_type` | Text | `feed`, `carousel`, `reel`, or `story` |
 | `name` | Text | Display name |
-| `subtitle` | Text | Optional subtitle |
-| `ig_handle` | Text | Instagram handle (without @) |
-| `bio` | Text | Bio text |
+| `ig_handle` | Text | Instagram handle(s), comma-separated |
+| `bio` | Text | Description text |
 | `caption` | Text | Full caption draft |
-| `drive_link` | Text | Google Drive folder/file link |
+| `drive_link` | Text | Google Drive link |
+| `event_link` | Text | Per-post event/RSVP link |
+| `tags` | Text[] | Array of tag names associated with this post |
 | `position` | Integer | Sort order within a day+section |
 | `is_posted` | Boolean | Whether the post has been marked done |
 | `posted_at` | Timestamp | When it was marked done |
 | `created_at` | Timestamp | Row creation time |
 | `updated_at` | Timestamp | Last modified time |
 
-The `sponsorships` table (existing data from before this project) is untouched.
+### `tags`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | UUID | Primary key |
+| `name` | Text | Unique tag name |
+| `event_link` | Text | Default event link for this tag |
+| `handles` | Text[] | IG handles associated with this tag |
+| `color` | Text | Hex color for tag chips |
+| `created_at` | Timestamp | Row creation time |
 
 ---
 
@@ -167,13 +170,15 @@ The `sponsorships` table (existing data from before this project) is untouched.
 /
 ├── app/
 │   ├── layout.tsx              # Root layout, fonts, metadata
-│   ├── page.tsx                # Server component — fetches all posts from Supabase
+│   ├── page.tsx                # Server component — fetches posts + tags from Supabase
 │   ├── globals.css
 │   └── api/
-│       └── posts/
-│           ├── route.ts        # POST — create a new post
-│           └── [id]/
-│               └── route.ts   # PATCH — update fields | DELETE — remove post
+│       ├── posts/
+│       │   ├── route.ts        # POST — create a new post
+│       │   └── [id]/
+│       │       └── route.ts   # PATCH — update fields | DELETE — remove post
+│       └── tags/
+│           └── route.ts        # GET — list tags | POST — create a new tag
 │
 ├── components/
 │   ├── CalendarGrid.tsx        # Main client component — holds all state, DnD context
@@ -184,11 +189,10 @@ The `sponsorships` table (existing data from before this project) is untouched.
 │   └── StatsBar.tsx            # Posted / Remaining / % progress bar
 │
 ├── lib/
-│   ├── supabase.ts             # Supabase client (with cache: no-store to bypass Next.js cache)
-│   └── types.ts                # SocialPost type, POST_TYPE_STYLES config, DAYS array
+│   ├── supabase.ts             # Supabase client
+│   └── types.ts                # SocialPost + Tag types, POST_TYPE_STYLES, TYPE_SECTION, helpers
 │
 ├── .env.local                  # NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY
-├── vercel.json                 # { "framework": "nextjs" } — required for Vercel detection
 └── next.config.mjs             # Next.js config
 ```
 
@@ -196,21 +200,19 @@ The `sponsorships` table (existing data from before this project) is untouched.
 
 ## Data Flow
 
-1. **Page load** — `app/page.tsx` (server component) fetches all posts from Supabase with `cache: 'no-store'` so it always gets fresh data
-2. **Client state** — `CalendarGrid.tsx` holds the posts in React state; all UI interactions update state immediately (optimistic)
-3. **Persistence** — every mutation (edit, move, mark posted, delete) fires a `PATCH` or `DELETE` to the API in the background
-4. **API routes** — `app/api/posts/route.ts` (create) and `app/api/posts/[id]/route.ts` (update/delete) talk directly to Supabase server-side
+1. **Page load** — `app/page.tsx` (server component) fetches all posts and tags from Supabase with `cache: 'no-store'`
+2. **Client state** — `CalendarGrid.tsx` holds posts and tags in React state; all UI interactions update state immediately (optimistic)
+3. **Persistence** — every mutation fires a `PATCH` or `DELETE` to the API in the background
+4. **API routes** — all routes talk directly to Supabase server-side
 
-Because all updates are optimistic, the UI always feels instant even if the network is slow.
+Because all updates are optimistic, the UI always feels instant.
 
 ---
 
 ## Deployment
 
-The app is deployed on Vercel and auto-deploys whenever `main` is pushed to GitHub. No manual deploy step needed.
+Auto-deploys to Vercel on every push to `main`.
 
-Environment variables required in Vercel:
+Environment variables required:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-These are already set in the Vercel project. The Supabase anon key is safe to be public — security is handled by Row Level Security (RLS) policies on the database side.
