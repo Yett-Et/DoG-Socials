@@ -11,7 +11,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { SocialPost, getWeekStart, getWeekDays } from '@/lib/types';
+import { SocialPost, Tag, getWeekStart, getWeekDays } from '@/lib/types';
 import DayColumn from './DayColumn';
 import PostModal from './PostModal';
 import AddPostModal from './AddPostModal';
@@ -20,6 +20,7 @@ import PostCard from './PostCard';
 
 type Props = {
   initialPosts: SocialPost[];
+  initialTags: Tag[];
 };
 
 async function patchPost(id: string, updates: Record<string, unknown>) {
@@ -30,14 +31,21 @@ async function patchPost(id: string, updates: Record<string, unknown>) {
   });
 }
 
-export default function CalendarGrid({ initialPosts }: Props) {
+export default function CalendarGrid({ initialPosts, initialTags }: Props) {
   const [posts, setPosts] = useState<SocialPost[]>(initialPosts);
+  const [tags, setTags] = useState<Tag[]>(initialTags);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [draggingPost, setDraggingPost] = useState<SocialPost | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
 
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
+
+  const tagMap = useMemo(() => {
+    const m: Record<string, Tag> = {};
+    for (const t of tags) m[t.name] = t;
+    return m;
+  }, [tags]);
 
   const selectedPost = selectedPostId ? (posts.find((p) => p.id === selectedPostId) ?? null) : null;
 
@@ -142,6 +150,10 @@ export default function CalendarGrid({ initialPosts }: Props) {
     setShowAddModal(false);
   }, []);
 
+  const handleTagCreated = useCallback((newTag: Tag) => {
+    setTags((prev) => [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)));
+  }, []);
+
   const postedCount = posts.filter((p) => p.is_posted).length;
 
   const weekLabel = `${weekDays[0].label} – ${weekDays[6].label}, ${weekStart.getFullYear()}`;
@@ -191,6 +203,7 @@ export default function CalendarGrid({ initialPosts }: Props) {
                 dayName={day.name}
                 dayLabel={day.label}
                 posts={posts.filter((p) => p.post_date === day.date)}
+                tagMap={tagMap}
                 onSelectPost={handleSelectPost}
               />
             ))}
@@ -200,7 +213,7 @@ export default function CalendarGrid({ initialPosts }: Props) {
         <DragOverlay dropAnimation={null}>
           {draggingPost && (
             <div className="opacity-90 scale-105 shadow-xl rotate-1">
-              <PostCard post={draggingPost} onClick={() => {}} />
+              <PostCard post={draggingPost} tagMap={tagMap} onClick={() => {}} />
             </div>
           )}
         </DragOverlay>
@@ -209,20 +222,22 @@ export default function CalendarGrid({ initialPosts }: Props) {
       {selectedPost && (
         <PostModal
           post={selectedPost}
-          weekDays={weekDays}
+          tags={tags}
           onClose={handleCloseModal}
           onMarkPosted={handleMarkPosted}
           onSave={handleSave}
           onMoveDay={handleMoveDay}
           onDelete={handleDelete}
+          onTagCreated={handleTagCreated}
         />
       )}
 
       {showAddModal && (
         <AddPostModal
-          weekDays={weekDays}
+          tags={tags}
           onClose={() => setShowAddModal(false)}
           onCreated={handlePostCreated}
+          onTagCreated={handleTagCreated}
         />
       )}
     </>

@@ -1,16 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SocialPost, POST_TYPE_STYLES, WeekDay } from '@/lib/types';
-
-const TYPE_SECTION: Record<string, 'feed' | 'story'> = {
-  af: 'feed',
-  sf: 'feed',
-  ir: 'feed',
-  as: 'story',
-  ss: 'story',
-  is: 'story',
-};
+import { SocialPost, Tag, POST_TYPE_STYLES, TYPE_SECTION, toISODateStr } from '@/lib/types';
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -21,19 +12,27 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 type Props = {
-  weekDays: WeekDay[];
+  tags: Tag[];
   onClose: () => void;
   onCreated: (post: SocialPost) => void;
+  onTagCreated: (tag: Tag) => void;
 };
 
-export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
-  const [postType, setPostType] = useState('af');
+export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }: Props) {
+  const today = toISODateStr(new Date());
+
+  const [postType, setPostType] = useState('feed');
   const [name, setName] = useState('');
-  const [postDate, setPostDate] = useState(() => weekDays[0].date);
+  const [postDate, setPostDate] = useState(today);
   const [igHandle, setIgHandle] = useState('');
   const [driveLink, setDriveLink] = useState('');
+  const [eventLink, setEventLink] = useState('');
   const [bio, setBio] = useState('');
   const [caption, setCaption] = useState('');
+  const [showEventLink, setShowEventLink] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,6 +42,50 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const addTag = useCallback(async (tagName: string) => {
+    const trimmed = tagName.trim();
+    if (!trimmed || selectedTags.includes(trimmed)) return;
+
+    const newSelected = [...selectedTags, trimmed];
+    setSelectedTags(newSelected);
+
+    // Auto-fill event_link if blank and tag has one
+    const existingTag = tags.find((t) => t.name === trimmed);
+    if (existingTag) {
+      if (!eventLink && existingTag.event_link) {
+        setEventLink(existingTag.event_link);
+        if (!showEventLink) setShowEventLink(true);
+      }
+    } else {
+      // Create new tag in DB
+      try {
+        const res = await fetch('/api/tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: trimmed }),
+        });
+        if (res.ok) {
+          const newTag: Tag = await res.json();
+          onTagCreated(newTag);
+        }
+      } catch { /* ignore */ }
+    }
+  }, [selectedTags, tags, eventLink, showEventLink, onTagCreated]);
+
+  const removeTag = useCallback((tagName: string) => {
+    setSelectedTags((prev) => prev.filter((t) => t !== tagName));
+  }, []);
+
+  const handleNewTagKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(newTagInput);
+      setNewTagInput('');
+    }
+  }, [newTagInput, addTag]);
+
+  const availableTags = tags.filter((t) => !selectedTags.includes(t.name));
 
   const handleCreate = useCallback(async () => {
     if (!name.trim()) return;
@@ -58,8 +101,10 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
           post_date: postDate,
           ig_handle: igHandle.replace(/^@/, '') || null,
           drive_link: driveLink || null,
-          bio: bio || null,
+          event_link: showEventLink ? (eventLink || null) : null,
+          bio: showDescription ? (bio || null) : null,
           caption: caption || null,
+          tags: selectedTags,
         }),
       });
       const newPost = await res.json();
@@ -67,7 +112,7 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
     } finally {
       setSaving(false);
     }
-  }, [postType, name, postDate, igHandle, driveLink, bio, caption, onCreated]);
+  }, [postType, name, postDate, igHandle, driveLink, eventLink, bio, caption, showEventLink, showDescription, selectedTags, onCreated]);
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -119,30 +164,70 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Artist / Sponsor / Influencer name"
+              placeholder="Person, brand, or account name"
               className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             />
           </div>
 
-          {/* Day */}
+          {/* Date */}
           <div>
-            <FieldLabel>Day</FieldLabel>
-            <div className="flex gap-1 flex-wrap">
-              {weekDays.map((d) => (
-                <button
-                  key={d.date}
-                  onClick={() => setPostDate(d.date)}
-                  className={[
-                    'px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors',
-                    postDate === d.date
-                      ? 'bg-gray-800 text-white border-gray-800'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50',
-                  ].join(' ')}
+            <FieldLabel>Date</FieldLabel>
+            <input
+              type="date"
+              value={postDate}
+              onChange={(e) => setPostDate(e.target.value)}
+              className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <FieldLabel>Tags</FieldLabel>
+            {selectedTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedTags.map((tagName) => {
+                  const tag = tags.find((t) => t.name === tagName);
+                  const color = tag?.color ?? '#6b7280';
+                  return (
+                    <span
+                      key={tagName}
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {tagName}
+                      <button
+                        onClick={() => removeTag(tagName)}
+                        className="opacity-70 hover:opacity-100 leading-none"
+                        aria-label={`Remove tag ${tagName}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex gap-1.5">
+              {availableTags.length > 0 && (
+                <select
+                  className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  value=""
+                  onChange={(e) => { if (e.target.value) { addTag(e.target.value); e.target.value = ''; } }}
                 >
-                  {d.name}
-                  <span className="ml-1 font-normal opacity-60">{d.label.split(' ')[1]}</span>
-                </button>
-              ))}
+                  <option value="">Add tag…</option>
+                  {availableTags.map((t) => (
+                    <option key={t.id} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+              <input
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={handleNewTagKeyDown}
+                onBlur={() => { if (newTagInput.trim()) { addTag(newTagInput); setNewTagInput(''); } }}
+                placeholder="New tag…"
+                className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+              />
             </div>
           </div>
 
@@ -160,17 +245,32 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
             </div>
           </div>
 
-          {/* Event Link */}
+          {/* Event Link (toggleable) */}
           <div>
-            <FieldLabel>Event Link</FieldLabel>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-400 truncate">
-              partiful.com/e/CeIqFeWlGdikbguBUm8M — pre-filled on all posts
-            </div>
+            <label className="flex items-center gap-2 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={showEventLink}
+                onChange={(e) => setShowEventLink(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                Event Link
+              </span>
+            </label>
+            {showEventLink && (
+              <input
+                value={eventLink}
+                onChange={(e) => setEventLink(e.target.value)}
+                placeholder="https://partiful.com/e/..."
+                className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+              />
+            )}
           </div>
 
-          {/* Assets Folder */}
+          {/* Assets Link */}
           <div>
-            <FieldLabel>Assets Folder</FieldLabel>
+            <FieldLabel>Assets Link</FieldLabel>
             <input
               value={driveLink}
               onChange={(e) => setDriveLink(e.target.value)}
@@ -179,16 +279,28 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
             />
           </div>
 
-          {/* Bio */}
+          {/* Description (toggleable) */}
           <div>
-            <FieldLabel>Bio</FieldLabel>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              placeholder="A [descriptor] who..."
-              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-            />
+            <label className="flex items-center gap-2 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={showDescription}
+                onChange={(e) => setShowDescription(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                Description
+              </span>
+            </label>
+            {showDescription && (
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                placeholder="A short description..."
+                className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+              />
+            )}
           </div>
 
           {/* Caption */}
@@ -198,7 +310,7 @@ export default function AddPostModal({ weekDays, onClose, onCreated }: Props) {
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={6}
-              placeholder={`@handle\n\nBio text...\n\nPart of Dreaming of Greece...`}
+              placeholder={`@handle\n\nDescription...\n\nEvent link...`}
               className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             />
           </div>

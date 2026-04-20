@@ -1,18 +1,19 @@
 'use client';
 
 import { useDroppable } from '@dnd-kit/core';
-import { SocialPost } from '@/lib/types';
+import { SocialPost, Tag } from '@/lib/types';
 import PostCard from './PostCard';
 
 type Props = {
-  date: string;      // 'YYYY-MM-DD'
-  dayName: string;   // 'Mon', 'Tue', etc.
-  dayLabel: string;  // 'Apr 13'
+  date: string;
+  dayName: string;
+  dayLabel: string;
   posts: SocialPost[];
+  tagMap: Record<string, Tag>;
   onSelectPost: (post: SocialPost) => void;
 };
 
-export default function DayColumn({ date, dayName, dayLabel, posts, onSelectPost }: Props) {
+export default function DayColumn({ date, dayName, dayLabel, posts, tagMap, onSelectPost }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: `day-${date}` });
 
   const feedPosts = posts.filter((p) => p.section === 'feed');
@@ -41,7 +42,7 @@ export default function DayColumn({ date, dayName, dayLabel, posts, onSelectPost
             Feed
           </div>
           {feedPosts.map((post) => (
-            <PostCard key={post.id} post={post} onClick={() => onSelectPost(post)} />
+            <PostCard key={post.id} post={post} tagMap={tagMap} onClick={() => onSelectPost(post)} />
           ))}
         </>
       )}
@@ -52,7 +53,7 @@ export default function DayColumn({ date, dayName, dayLabel, posts, onSelectPost
             Stories
           </div>
           {storyPosts.map((post) => (
-            <PostCard key={post.id} post={post} onClick={() => onSelectPost(post)} />
+            <PostCard key={post.id} post={post} tagMap={tagMap} onClick={() => onSelectPost(post)} />
           ))}
         </>
       )}

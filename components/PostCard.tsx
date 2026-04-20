@@ -2,14 +2,15 @@
 
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { SocialPost, POST_TYPE_STYLES } from '@/lib/types';
+import { SocialPost, Tag, POST_TYPE_STYLES } from '@/lib/types';
 
 type Props = {
   post: SocialPost;
+  tagMap: Record<string, Tag>;
   onClick: () => void;
 };
 
-export default function PostCard({ post, onClick }: Props) {
+export default function PostCard({ post, tagMap, onClick }: Props) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: post.id,
   });
@@ -20,7 +21,7 @@ export default function PostCard({ post, onClick }: Props) {
     position: isDragging ? ('relative' as const) : undefined,
   };
 
-  const typeStyle = POST_TYPE_STYLES[post.post_type];
+  const typeStyle = POST_TYPE_STYLES[post.post_type] ?? POST_TYPE_STYLES['feed'];
 
   return (
     <div
@@ -54,8 +55,25 @@ export default function PostCard({ post, onClick }: Props) {
       {post.ig_handle && (
         <div className="text-[9px] text-gray-400 mt-0.5">@{post.ig_handle}</div>
       )}
+      {post.tags && post.tags.length > 0 && (
+        <div className="flex flex-wrap gap-0.5 mt-1">
+          {post.tags.map((tagName) => {
+            const tag = tagMap[tagName];
+            const color = tag?.color ?? '#6b7280';
+            return (
+              <span
+                key={tagName}
+                className="text-[7px] font-semibold px-1 py-0.5 rounded text-white"
+                style={{ backgroundColor: color }}
+              >
+                {tagName}
+              </span>
+            );
+          })}
+        </div>
+      )}
       {post.bio && (
-        <div className="text-[8px] text-gray-400 mt-1 opacity-70">tap for bio &amp; caption ›</div>
+        <div className="text-[8px] text-gray-400 mt-1 opacity-70">tap for description &amp; caption ›</div>
       )}
     </div>
   );

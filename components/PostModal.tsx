@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SocialPost, POST_TYPE_STYLES, WeekDay } from '@/lib/types';
+import { SocialPost, Tag, POST_TYPE_STYLES } from '@/lib/types';
 
 type Props = {
   post: SocialPost;
-  weekDays: WeekDay[];
+  tags: Tag[];
   onClose: () => void;
   onMarkPosted: (postId: string, isPosted: boolean) => void;
   onSave: (postId: string, updates: Partial<SocialPost>) => void;
   onMoveDay: (postId: string, newDate: string) => void;
   onDelete: (postId: string) => void;
+  onTagCreated: (tag: Tag) => void;
 };
 
 function CopyIcon() {
@@ -41,11 +42,14 @@ function SaveButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSave, onMoveDay, onDelete }: Props) {
+export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete, onTagCreated }: Props) {
   const [igHandle, setIgHandle] = useState(post.ig_handle ?? '');
   const [driveLink, setDriveLink] = useState(post.drive_link ?? '');
+  const [eventLink, setEventLink] = useState(post.event_link ?? '');
   const [bio, setBio] = useState(post.bio ?? '');
   const [caption, setCaption] = useState(post.caption ?? '');
+  const [postTags, setPostTags] = useState<string[]>(post.tags ?? []);
+  const [newTagInput, setNewTagInput] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -53,8 +57,11 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
   useEffect(() => {
     setIgHandle(post.ig_handle ?? '');
     setDriveLink(post.drive_link ?? '');
+    setEventLink(post.event_link ?? '');
     setBio(post.bio ?? '');
     setCaption(post.caption ?? '');
+    setPostTags(post.tags ?? []);
+    setNewTagInput('');
     setConfirmDelete(false);
   }, [post.id]);
 
@@ -77,10 +84,59 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
 
   const igHandleChanged = igHandle !== (post.ig_handle ?? '');
   const driveLinkChanged = driveLink !== (post.drive_link ?? '');
+  const eventLinkChanged = eventLink !== (post.event_link ?? '');
   const bioChanged = bio !== (post.bio ?? '');
   const captionChanged = caption !== (post.caption ?? '');
 
-  const typeStyle = POST_TYPE_STYLES[post.post_type];
+  const typeStyle = POST_TYPE_STYLES[post.post_type] ?? POST_TYPE_STYLES['feed'];
+
+  // Tags helpers
+  const addTag = useCallback(async (tagName: string) => {
+    const trimmed = tagName.trim();
+    if (!trimmed || postTags.includes(trimmed)) return;
+
+    const newTags = [...postTags, trimmed];
+    setPostTags(newTags);
+    onSave(post.id, { tags: newTags });
+
+    // Auto-fill event_link if blank and tag has one
+    const existingTag = tags.find((t) => t.name === trimmed);
+    if (existingTag) {
+      if (!eventLink && existingTag.event_link) {
+        setEventLink(existingTag.event_link);
+        onSave(post.id, { event_link: existingTag.event_link });
+      }
+    } else {
+      // Create new tag in DB
+      try {
+        const res = await fetch('/api/tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: trimmed }),
+        });
+        if (res.ok) {
+          const newTag: Tag = await res.json();
+          onTagCreated(newTag);
+        }
+      } catch { /* ignore */ }
+    }
+  }, [postTags, tags, eventLink, post.id, onSave, onTagCreated]);
+
+  const removeTag = useCallback((tagName: string) => {
+    const newTags = postTags.filter((t) => t !== tagName);
+    setPostTags(newTags);
+    onSave(post.id, { tags: newTags });
+  }, [postTags, post.id, onSave]);
+
+  const handleNewTagKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(newTagInput);
+      setNewTagInput('');
+    }
+  }, [newTagInput, addTag]);
+
+  const availableTags = tags.filter((t) => !postTags.includes(t.name));
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -118,28 +174,87 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
 
+          {/* Tags */}
+          <div>
+            <FieldLabel>Tags</FieldLabel>
+            {postTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {postTags.map((tagName) => {
+                  const tag = tags.find((t) => t.name === tagName);
+                  const color = tag?.color ?? '#6b7280';
+                  return (
+                    <span
+                      key={tagName}
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {tagName}
+                      <button
+                        onClick={() => removeTag(tagName)}
+                        className="opacity-70 hover:opacity-100 leading-none"
+                        aria-label={`Remove tag ${tagName}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex gap-1.5">
+              {availableTags.length > 0 && (
+                <select
+                  className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  value=""
+                  onChange={(e) => { if (e.target.value) { addTag(e.target.value); e.target.value = ''; } }}
+                >
+                  <option value="">Add existing tag…</option>
+                  {availableTags.map((t) => (
+                    <option key={t.id} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+              <input
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={handleNewTagKeyDown}
+                onBlur={() => { if (newTagInput.trim()) { addTag(newTagInput); setNewTagInput(''); } }}
+                placeholder="New tag…"
+                className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+              />
+            </div>
+          </div>
+
           {/* Event Link */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <FieldLabel>Event Link</FieldLabel>
-              <button
-                onClick={() => handleCopy('https://partiful.com/e/CeIqFeWlGdikbguBUm8M?c=oUakw_QW', 'eventlink')}
-                className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
-              >
-                {copied === 'eventlink'
-                  ? <span className="text-green-600">✓ Copied!</span>
-                  : <><CopyIcon /> Copy link</>}
-              </button>
+              {eventLink && (
+                <button
+                  onClick={() => handleCopy(eventLink, 'eventlink')}
+                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
+                >
+                  {copied === 'eventlink'
+                    ? <span className="text-green-600">✓ Copied!</span>
+                    : <><CopyIcon /> Copy link</>}
+                </button>
+              )}
             </div>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 truncate">
-              partiful.com/e/CeIqFeWlGdikbguBUm8M
-            </div>
+            <input
+              value={eventLink}
+              onChange={(e) => setEventLink(e.target.value)}
+              placeholder="https://partiful.com/e/..."
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+            />
+            {eventLinkChanged && (
+              <SaveButton onClick={() => onSave(post.id, { event_link: eventLink || null })} />
+            )}
           </div>
 
-          {/* Assets Folder */}
+          {/* Assets Link */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <FieldLabel>Assets Folder</FieldLabel>
+              <FieldLabel>Assets Link</FieldLabel>
               {driveLink && (
                 <a
                   href={driveLink}
@@ -147,7 +262,7 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
                 >
-                  Open in Drive ↗
+                  Open ↗
                 </a>
               )}
             </div>
@@ -191,10 +306,10 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
             )}
           </div>
 
-          {/* Bio */}
+          {/* Description (bio) */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <FieldLabel>Bio</FieldLabel>
+              <FieldLabel>Description</FieldLabel>
               {bio && (
                 <button
                   onClick={() => handleCopy(bio, 'bio')}
@@ -202,7 +317,7 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
                 >
                   {copied === 'bio'
                     ? <span className="text-green-600">✓ Copied!</span>
-                    : <><CopyIcon /> Copy bio</>}
+                    : <><CopyIcon /> Copy</>}
                 </button>
               )}
             </div>
@@ -210,7 +325,7 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={4}
-              placeholder="No bio yet — type one here..."
+              placeholder="No description yet — type one here..."
               className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             />
             {bioChanged && (
@@ -248,23 +363,13 @@ export default function PostModal({ post, weekDays, onClose, onMarkPosted, onSav
           {/* Move to day */}
           <div>
             <FieldLabel>Move to day</FieldLabel>
-            <div className="flex gap-1 flex-wrap">
-              {weekDays.map((d) => (
-                <button
-                  key={d.date}
-                  onClick={() => { if (d.date !== post.post_date) onMoveDay(post.id, d.date); }}
-                  className={[
-                    'px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors',
-                    post.post_date === d.date
-                      ? 'bg-gray-800 text-white border-gray-800'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50',
-                  ].join(' ')}
-                >
-                  {d.name}
-                  <span className="ml-1 font-normal opacity-60">{d.label.split(' ')[1]}</span>
-                </button>
-              ))}
-            </div>
+            <input
+              type="date"
+              defaultValue={post.post_date}
+              key={post.post_date}
+              onChange={(e) => { if (e.target.value) onMoveDay(post.id, e.target.value); }}
+              className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+            />
           </div>
         </div>
 

@@ -14,6 +14,8 @@ export async function PATCH(
   if ('bio' in body) updates.bio = body.bio;
   if ('ig_handle' in body) updates.ig_handle = body.ig_handle;
   if ('drive_link' in body) updates.drive_link = body.drive_link;
+  if ('event_link' in body) updates.event_link = body.event_link;
+  if ('tags' in body) updates.tags = body.tags;
   if ('post_date' in body) updates.post_date = body.post_date;
   if ('is_posted' in body) {
     updates.is_posted = body.is_posted;

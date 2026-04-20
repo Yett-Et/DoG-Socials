@@ -2,18 +2,29 @@ export type SocialPost = {
   id: string;
   post_date: string;    // 'YYYY-MM-DD'
   section: 'feed' | 'story';
-  post_type: 'af' | 'as' | 'sf' | 'ss' | 'is' | 'ir';
+  post_type: 'feed' | 'carousel' | 'reel' | 'story';
   name: string;
   subtitle: string | null;
   ig_handle: string | null;
-  bio: string | null;
+  bio: string | null;        // DB field stays 'bio'; UI label is 'Description'
   caption: string | null;
   drive_link: string | null;
+  event_link: string | null;
+  tags: string[];
   position: number;
   is_posted: boolean;
   posted_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type Tag = {
+  id: string;
+  name: string;
+  event_link: string | null;
+  handles: string[];
+  color: string;
+  created_at: string;
 };
 
 export type PostTypeStyle = {
@@ -27,60 +38,49 @@ export type PostTypeStyle = {
 };
 
 export const POST_TYPE_STYLES: Record<string, PostTypeStyle> = {
-  af: {
+  feed: {
     bg: 'bg-[#ddeeff]',
     border: 'border-[#88bbee]',
-    label: 'Artist Feed',
+    label: 'Feed',
     labelColor: 'text-[#1155aa]',
     dotColor: 'bg-[#88bbee]',
     icon: '◼',
     color: '#5599dd',
   },
-  as: {
-    bg: 'bg-[#dff2df]',
-    border: 'border-[#88cc88]',
-    label: 'Artist Story',
-    labelColor: 'text-[#2d7a2d]',
-    dotColor: 'bg-[#88cc88]',
-    icon: '◎',
-    color: '#55aa55',
-  },
-  sf: {
+  carousel: {
     bg: 'bg-[#fff0cc]',
     border: 'border-[#eebb44]',
-    label: 'Sponsor Feed',
+    label: 'Carousel',
     labelColor: 'text-[#996600]',
     dotColor: 'bg-[#eebb44]',
-    icon: '◼',
+    icon: '▦',
     color: '#cc9900',
   },
-  ss: {
-    bg: 'bg-[#fff7dd]',
-    border: 'border-[#ffcc66]',
-    label: 'Sponsor Story',
-    labelColor: 'text-[#996600]',
-    dotColor: 'bg-[#ffcc66]',
-    icon: '◎',
-    color: '#ddaa00',
-  },
-  is: {
-    bg: 'bg-[#fde8f2]',
-    border: 'border-[#ee88bb]',
-    label: 'Influencer Story',
-    labelColor: 'text-[#882255]',
-    dotColor: 'bg-[#ee88bb]',
-    icon: '◎',
-    color: '#cc5599',
-  },
-  ir: {
+  reel: {
     bg: 'bg-[#eeeaff]',
     border: 'border-[#aa99ee]',
-    label: 'Influencer Reel',
+    label: 'Reel',
     labelColor: 'text-[#443399]',
     dotColor: 'bg-[#aa99ee]',
     icon: '▶',
     color: '#7766cc',
   },
+  story: {
+    bg: 'bg-[#dff2df]',
+    border: 'border-[#88cc88]',
+    label: 'Story',
+    labelColor: 'text-[#2d7a2d]',
+    dotColor: 'bg-[#88cc88]',
+    icon: '◎',
+    color: '#55aa55',
+  },
+};
+
+export const TYPE_SECTION: Record<string, 'feed' | 'story'> = {
+  feed: 'feed',
+  carousel: 'feed',
+  reel: 'feed',
+  story: 'story',
 };
 
 export type WeekDay = {
@@ -113,4 +113,8 @@ export function getWeekDays(weekStart: Date): WeekDay[] {
       label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     };
   });
+}
+
+export function toISODateStr(d: Date): string {
+  return toISODate(d);
 }
