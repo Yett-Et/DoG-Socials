@@ -158,6 +158,10 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
     setTags((prev) => prev.map((t) => (t.id === updatedTag.id ? updatedTag : t)));
   }, []);
 
+  const handleTagDeleted = useCallback((tagId: string) => {
+    setTags((prev) => prev.filter((t) => t.id !== tagId));
+  }, []);
+
   const postedCount = posts.filter((p) => p.is_posted).length;
 
   const weekLabel = `${weekDays[0].label} – ${weekDays[6].label}, ${weekStart.getFullYear()}`;
@@ -234,6 +238,7 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
           onDelete={handleDelete}
           onTagCreated={handleTagCreated}
           onTagUpdated={handleTagUpdated}
+          onTagDeleted={handleTagDeleted}
         />
       )}
 
@@ -244,6 +249,7 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
           onCreated={handlePostCreated}
           onTagCreated={handleTagCreated}
           onTagUpdated={handleTagUpdated}
+          onTagDeleted={handleTagDeleted}
         />
       )}
     </>

@@ -13,6 +13,7 @@ type Props = {
   onDelete: (postId: string) => void;
   onTagCreated: (tag: Tag) => void;
   onTagUpdated: (tag: Tag) => void;
+  onTagDeleted: (tagId: string) => void;
 };
 
 function CopyIcon() {
@@ -47,21 +48,25 @@ function splitHandles(raw: string): string[] {
   return raw.split(/[\s,]+/).map((h) => h.replace(/^@/, '').trim()).filter(Boolean);
 }
 
-async function mergeHandlesIntoTag(tag: Tag, newHandles: string[], onTagUpdated: (t: Tag) => void) {
-  const merged = Array.from(new Set([...tag.handles, ...newHandles]));
-  if (merged.length === tag.handles.length && merged.every((h) => tag.handles.includes(h))) return;
+async function patchTag(tag: Tag, updates: Record<string, unknown>, onTagUpdated: (t: Tag) => void) {
   try {
     const res = await fetch(`/api/tags/${tag.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ handles: merged }),
+      body: JSON.stringify(updates),
     });
     if (res.ok) onTagUpdated(await res.json());
   } catch { /* ignore */ }
 }
 
-export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete, onTagCreated, onTagUpdated }: Props) {
-  const [igHandle, setIgHandle] = useState(post.ig_handle ?? '');
+export default function PostModal({
+  post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete,
+  onTagCreated, onTagUpdated, onTagDeleted,
+}: Props) {
+  const [selectedHandles, setSelectedHandles] = useState<string[]>(
+    () => post.ig_handle ? splitHandles(post.ig_handle) : []
+  );
+  const [handleInput, setHandleInput] = useState('');
   const [driveLink, setDriveLink] = useState(post.drive_link ?? '');
   const [eventLink, setEventLink] = useState(post.event_link ?? '');
   const [bio, setBio] = useState(post.bio ?? '');
@@ -71,9 +76,9 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Sync fields when a different post is opened
   useEffect(() => {
-    setIgHandle(post.ig_handle ?? '');
+    setSelectedHandles(post.ig_handle ? splitHandles(post.ig_handle) : []);
+    setHandleInput('');
     setDriveLink(post.drive_link ?? '');
     setEventLink(post.event_link ?? '');
     setBio(post.bio ?? '');
@@ -83,11 +88,8 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
     setConfirmDelete(false);
   }, [post.id]);
 
-  // Close on Escape
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -100,7 +102,16 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
     } catch { /* ignore */ }
   }, []);
 
-  const igHandleChanged = igHandle !== (post.ig_handle ?? '');
+  const originalHandles = useMemo(
+    () => (post.ig_handle ? splitHandles(post.ig_handle) : []),
+    [post.ig_handle]
+  );
+
+  const igHandleChanged =
+    selectedHandles.length !== originalHandles.length ||
+    selectedHandles.some((h) => !originalHandles.includes(h)) ||
+    originalHandles.some((h) => !selectedHandles.includes(h));
+
   const driveLinkChanged = driveLink !== (post.drive_link ?? '');
   const eventLinkChanged = eventLink !== (post.event_link ?? '');
   const bioChanged = bio !== (post.bio ?? '');
@@ -108,46 +119,61 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
 
   const typeStyle = POST_TYPE_STYLES[post.post_type] ?? POST_TYPE_STYLES['feed'];
 
+  // ── Handle helpers ──────────────────────────────────────────────────
+  const toggleHandle = useCallback((h: string) => {
+    setSelectedHandles((prev) => prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h]);
+  }, []);
+
+  const addHandleFromInput = useCallback(() => {
+    const h = handleInput.replace(/^@/, '').trim();
+    if (h && !selectedHandles.includes(h)) setSelectedHandles((prev) => [...prev, h]);
+    setHandleInput('');
+  }, [handleInput, selectedHandles]);
+
+  const removeHandleFromTag = useCallback(async (handle: string) => {
+    for (const tagName of postTags) {
+      const tag = tags.find((t) => t.name === tagName);
+      if (!tag || !tag.handles.includes(handle)) continue;
+      await patchTag(tag, { handles: tag.handles.filter((h) => h !== handle) }, onTagUpdated);
+    }
+  }, [postTags, tags, onTagUpdated]);
+
   const handleSaveIgHandle = useCallback(() => {
-    const clean = igHandle.replace(/^@/, '').trim() || null;
-    onSave(post.id, { ig_handle: clean });
-    if (clean && postTags.length > 0) {
-      const handles = splitHandles(clean);
+    const value = selectedHandles.join(' ') || null;
+    onSave(post.id, { ig_handle: value });
+    if (selectedHandles.length > 0) {
       for (const tagName of postTags) {
         const tag = tags.find((t) => t.name === tagName);
-        if (tag) mergeHandlesIntoTag(tag, handles, onTagUpdated);
+        if (!tag) continue;
+        const merged = Array.from(new Set([...tag.handles, ...selectedHandles]));
+        if (merged.some((h) => !tag.handles.includes(h))) {
+          patchTag(tag, { handles: merged }, onTagUpdated);
+        }
       }
     }
-  }, [igHandle, post.id, postTags, tags, onSave, onTagUpdated]);
+  }, [selectedHandles, post.id, postTags, tags, onSave, onTagUpdated]);
 
-  // Tags helpers
+  // ── Tag helpers ─────────────────────────────────────────────────────
   const addTag = useCallback(async (tagName: string) => {
     const trimmed = tagName.trim();
     if (!trimmed || postTags.includes(trimmed)) return;
-
     const newTags = [...postTags, trimmed];
     setPostTags(newTags);
     onSave(post.id, { tags: newTags });
-
-    // Auto-fill event_link if blank and tag has one
-    const existingTag = tags.find((t) => t.name === trimmed);
-    if (existingTag) {
-      if (!eventLink && existingTag.event_link) {
-        setEventLink(existingTag.event_link);
-        onSave(post.id, { event_link: existingTag.event_link });
+    const existing = tags.find((t) => t.name === trimmed);
+    if (existing) {
+      if (!eventLink && existing.event_link) {
+        setEventLink(existing.event_link);
+        onSave(post.id, { event_link: existing.event_link });
       }
     } else {
-      // Create new tag in DB
       try {
         const res = await fetch('/api/tags', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: trimmed }),
         });
-        if (res.ok) {
-          const newTag: Tag = await res.json();
-          onTagCreated(newTag);
-        }
+        if (res.ok) onTagCreated(await res.json());
       } catch { /* ignore */ }
     }
   }, [postTags, tags, eventLink, post.id, onSave, onTagCreated]);
@@ -166,9 +192,22 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
     }
   }, [newTagInput, addTag]);
 
+  const handleDeleteTag = useCallback(async (tag: Tag) => {
+    try {
+      const res = await fetch(`/api/tags/${tag.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onTagDeleted(tag.id);
+        if (postTags.includes(tag.name)) {
+          const newTags = postTags.filter((t) => t !== tag.name);
+          setPostTags(newTags);
+          onSave(post.id, { tags: newTags });
+        }
+      }
+    } catch { /* ignore */ }
+  }, [onTagDeleted, postTags, post.id, onSave]);
+
   const availableTags = tags.filter((t) => !postTags.includes(t.name));
 
-  // Handles suggested by the post's current tags
   const suggestedHandles = useMemo(() => {
     const all = new Set<string>();
     for (const tagName of postTags) {
@@ -180,10 +219,7 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
-      {/* Backdrop */}
       <div className="flex-1 bg-black/30" />
-
-      {/* Panel */}
       <div
         className="w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -201,13 +237,7 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
               <h2 className="text-base font-bold text-gray-900 leading-tight">{post.name}</h2>
               {post.subtitle && <p className="text-xs text-gray-500 mt-0.5">{post.subtitle}</p>}
             </div>
-            <button
-              onClick={onClose}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-700 text-2xl leading-none font-light mt-0.5"
-              aria-label="Close"
-            >
-              ×
-            </button>
+            <button onClick={onClose} className="flex-shrink-0 text-gray-400 hover:text-gray-700 text-2xl leading-none font-light mt-0.5" aria-label="Close">×</button>
           </div>
         </div>
 
@@ -223,46 +253,36 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
                   const tag = tags.find((t) => t.name === tagName);
                   const color = tag?.color ?? '#6b7280';
                   return (
-                    <span
-                      key={tagName}
-                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: color }}
-                    >
+                    <span key={tagName} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
                       {tagName}
-                      <button
-                        onClick={() => removeTag(tagName)}
-                        className="opacity-70 hover:opacity-100 leading-none"
-                        aria-label={`Remove tag ${tagName}`}
-                      >
-                        ×
-                      </button>
+                      <button onClick={() => removeTag(tagName)} className="opacity-70 hover:opacity-100 leading-none">×</button>
                     </span>
                   );
                 })}
               </div>
             )}
-            <div className="flex gap-1.5">
-              {availableTags.length > 0 && (
-                <select
-                  className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  value=""
-                  onChange={(e) => { if (e.target.value) { addTag(e.target.value); e.target.value = ''; } }}
-                >
-                  <option value="">Add existing tag…</option>
-                  {availableTags.map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
-                  ))}
-                </select>
-              )}
-              <input
-                value={newTagInput}
-                onChange={(e) => setNewTagInput(e.target.value)}
-                onKeyDown={handleNewTagKeyDown}
-                onBlur={() => { if (newTagInput.trim()) { addTag(newTagInput); setNewTagInput(''); } }}
-                placeholder="New tag…"
-                className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
-              />
-            </div>
+            {availableTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {availableTags.map((tag) => (
+                  <div key={tag.id} className="inline-flex items-center rounded-full border overflow-hidden text-[10px] font-semibold" style={{ borderColor: tag.color, color: tag.color }}>
+                    <button onClick={() => addTag(tag.name)} className="pl-2 pr-1 py-0.5 hover:opacity-70 transition-opacity">
+                      + {tag.name}
+                    </button>
+                    <button onClick={() => handleDeleteTag(tag)} className="pr-1.5 py-0.5 opacity-30 hover:opacity-100 hover:text-red-500 transition-all leading-none" title="Delete tag">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              value={newTagInput}
+              onChange={(e) => setNewTagInput(e.target.value)}
+              onKeyDown={handleNewTagKeyDown}
+              onBlur={() => { if (newTagInput.trim()) { addTag(newTagInput); setNewTagInput(''); } }}
+              placeholder="New tag…"
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+            />
           </div>
 
           {/* Event Link */}
@@ -270,13 +290,8 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
             <div className="flex items-center justify-between mb-1">
               <FieldLabel>Event Link</FieldLabel>
               {eventLink && (
-                <button
-                  onClick={() => handleCopy(eventLink, 'eventlink')}
-                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
-                >
-                  {copied === 'eventlink'
-                    ? <span className="text-green-600">✓ Copied!</span>
-                    : <><CopyIcon /> Copy link</>}
+                <button onClick={() => handleCopy(eventLink, 'eventlink')} className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700">
+                  {copied === 'eventlink' ? <span className="text-green-600">✓ Copied!</span> : <><CopyIcon /> Copy link</>}
                 </button>
               )}
             </div>
@@ -286,9 +301,7 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
               placeholder="https://partiful.com/e/..."
               className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             />
-            {eventLinkChanged && (
-              <SaveButton onClick={() => onSave(post.id, { event_link: eventLink || null })} />
-            )}
+            {eventLinkChanged && <SaveButton onClick={() => onSave(post.id, { event_link: eventLink || null })} />}
           </div>
 
           {/* Assets Link */}
@@ -296,12 +309,7 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
             <div className="flex items-center justify-between mb-1">
               <FieldLabel>Assets Link</FieldLabel>
               {driveLink && (
-                <a
-                  href={driveLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
-                >
+                <a href={driveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700">
                   Open ↗
                 </a>
               )}
@@ -312,89 +320,82 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
               placeholder="https://drive.google.com/..."
               className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             />
-            {driveLinkChanged && (
-              <SaveButton onClick={() => onSave(post.id, { drive_link: driveLink || null })} />
-            )}
+            {driveLinkChanged && <SaveButton onClick={() => onSave(post.id, { drive_link: driveLink || null })} />}
           </div>
 
-          {/* IG Handle */}
+          {/* IG Handle(s) */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <FieldLabel>IG Handle</FieldLabel>
-              {igHandle && (
+              <FieldLabel>IG Handle{selectedHandles.length > 1 ? 's' : ''}</FieldLabel>
+              {selectedHandles.length > 0 && (
                 <button
-                  onClick={() => {
-                    const handles = splitHandles(igHandle);
-                    handleCopy(handles.map((h) => `@${h}`).join(' '), 'handle');
-                  }}
+                  onClick={() => handleCopy(selectedHandles.map((h) => `@${h}`).join(' '), 'handle')}
                   className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
                 >
-                  {copied === 'handle'
-                    ? <span className="text-green-600">✓ Copied!</span>
-                    : <><CopyIcon /> Copy</>}
+                  {copied === 'handle' ? <span className="text-green-600">✓ Copied!</span> : <><CopyIcon /> Copy</>}
                 </button>
               )}
             </div>
+
+            {selectedHandles.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedHandles.map((h) => (
+                  <span key={h} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-white">
+                    @{h}
+                    <button onClick={() => toggleHandle(h)} className="opacity-70 hover:opacity-100 leading-none">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
               <span className="text-gray-400 text-sm">@</span>
               <input
-                value={igHandle.replace(/^@/, '')}
-                onChange={(e) => setIgHandle(e.target.value)}
-                placeholder="handle"
+                value={handleInput.replace(/^@/, '')}
+                onChange={(e) => setHandleInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addHandleFromInput(); } }}
+                onBlur={addHandleFromInput}
+                placeholder="type handle and press Enter"
                 className="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none"
               />
             </div>
+
             {suggestedHandles.length > 0 && (
               <div className="mt-2">
                 <div className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">From tag</div>
                 <div className="flex flex-wrap gap-1">
-                  {suggestedHandles.map((h) => (
-                    <button
-                      key={h}
-                      onClick={() => setIgHandle(h)}
-                      className={[
-                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border transition-colors',
-                        igHandle.replace(/^@/, '') === h
-                          ? 'bg-gray-700 text-white border-gray-700'
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-400',
-                      ].join(' ')}
-                    >
-                      @{h}
-                    </button>
-                  ))}
+                  {suggestedHandles.map((h) => {
+                    const active = selectedHandles.includes(h);
+                    return (
+                      <div key={h} className="inline-flex items-center rounded border overflow-hidden" style={{ backgroundColor: active ? '#374151' : '#f9fafb', borderColor: active ? '#374151' : '#e5e7eb' }}>
+                        <button onClick={() => toggleHandle(h)} className="text-[9px] font-semibold px-1.5 py-0.5" style={{ color: active ? '#fff' : '#6b7280' }}>
+                          @{h}
+                        </button>
+                        <button onClick={() => removeHandleFromTag(h)} className="pr-1 text-[9px] opacity-30 hover:opacity-100 hover:text-red-400 transition-all leading-none" title="Remove from tag" style={{ color: active ? '#fff' : '#9ca3af' }}>
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
-            {igHandleChanged && (
-              <SaveButton onClick={handleSaveIgHandle} />
-            )}
+
+            {igHandleChanged && <SaveButton onClick={handleSaveIgHandle} />}
           </div>
 
-          {/* Description (bio) */}
+          {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <FieldLabel>Description</FieldLabel>
               {bio && (
-                <button
-                  onClick={() => handleCopy(bio, 'bio')}
-                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
-                >
-                  {copied === 'bio'
-                    ? <span className="text-green-600">✓ Copied!</span>
-                    : <><CopyIcon /> Copy</>}
+                <button onClick={() => handleCopy(bio, 'bio')} className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700">
+                  {copied === 'bio' ? <span className="text-green-600">✓ Copied!</span> : <><CopyIcon /> Copy</>}
                 </button>
               )}
             </div>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              placeholder="No description yet — type one here..."
-              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-            />
-            {bioChanged && (
-              <SaveButton onClick={() => onSave(post.id, { bio: bio || null })} />
-            )}
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="No description yet — type one here..." className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors" />
+            {bioChanged && <SaveButton onClick={() => onSave(post.id, { bio: bio || null })} />}
           </div>
 
           {/* Caption */}
@@ -402,26 +403,13 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
             <div className="flex items-center justify-between mb-1">
               <FieldLabel>Caption Draft</FieldLabel>
               {caption && (
-                <button
-                  onClick={() => handleCopy(caption, 'caption')}
-                  className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700"
-                >
-                  {copied === 'caption'
-                    ? <span className="text-green-600">✓ Copied!</span>
-                    : <><CopyIcon /> Copy caption</>}
+                <button onClick={() => handleCopy(caption, 'caption')} className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700">
+                  {copied === 'caption' ? <span className="text-green-600">✓ Copied!</span> : <><CopyIcon /> Copy caption</>}
                 </button>
               )}
             </div>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={6}
-              placeholder="No caption yet — type one here..."
-              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-            />
-            {captionChanged && (
-              <SaveButton onClick={() => onSave(post.id, { caption: caption || null })} />
-            )}
+            <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={6} placeholder="No caption yet — type one here..." className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors" />
+            {captionChanged && <SaveButton onClick={() => onSave(post.id, { caption: caption || null })} />}
           </div>
 
           {/* Move to day */}
@@ -441,35 +429,17 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
         <div className="flex-shrink-0 p-4 border-t bg-gray-50 flex flex-col gap-2">
           <button
             onClick={() => onMarkPosted(post.id, !post.is_posted)}
-            className={[
-              'w-full py-2.5 rounded-xl font-semibold text-sm transition-colors',
-              post.is_posted
-                ? 'bg-gray-200 text-gray-500 hover:bg-gray-300'
-                : 'bg-green-500 text-white hover:bg-green-600',
-            ].join(' ')}
+            className={['w-full py-2.5 rounded-xl font-semibold text-sm transition-colors', post.is_posted ? 'bg-gray-200 text-gray-500 hover:bg-gray-300' : 'bg-green-500 text-white hover:bg-green-600'].join(' ')}
           >
             {post.is_posted ? '✓ Posted — Tap to unmark' : 'Mark as Posted ✓'}
           </button>
           {confirmDelete ? (
             <div className="flex gap-2">
-              <button
-                onClick={() => onDelete(post.id)}
-                className="flex-1 py-2 rounded-xl font-semibold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors"
-              >
-                Confirm Delete
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 py-2 rounded-xl font-semibold text-sm bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
+              <button onClick={() => onDelete(post.id)} className="flex-1 py-2 rounded-xl font-semibold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors">Confirm Delete</button>
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2 rounded-xl font-semibold text-sm bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors">Cancel</button>
             </div>
           ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="w-full py-2 rounded-xl font-semibold text-sm text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
-            >
+            <button onClick={() => setConfirmDelete(true)} className="w-full py-2 rounded-xl font-semibold text-sm text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors">
               Delete post
             </button>
           )}

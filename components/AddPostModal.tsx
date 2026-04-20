@@ -17,9 +17,10 @@ type Props = {
   onCreated: (post: SocialPost) => void;
   onTagCreated: (tag: Tag) => void;
   onTagUpdated: (tag: Tag) => void;
+  onTagDeleted: (tagId: string) => void;
 };
 
-export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, onTagUpdated }: Props) {
+export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, onTagUpdated, onTagDeleted }: Props) {
   const today = toISODateStr(new Date());
 
   const [postType, setPostType] = useState('feed');
@@ -38,14 +39,11 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Handles suggested by the currently selected tags
   const suggestedHandles = useMemo(() => {
     const all = new Set<string>();
     for (const tagName of selectedTags) {
@@ -63,22 +61,34 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
 
   const addHandleFromInput = useCallback(() => {
     const h = handleInput.replace(/^@/, '').trim();
-    if (h && !selectedHandles.includes(h)) {
-      setSelectedHandles((prev) => [...prev, h]);
-    }
+    if (h && !selectedHandles.includes(h)) setSelectedHandles((prev) => [...prev, h]);
     setHandleInput('');
   }, [handleInput, selectedHandles]);
+
+  const removeHandleFromTag = useCallback(async (handle: string) => {
+    for (const tagName of selectedTags) {
+      const tag = tags.find((t) => t.name === tagName);
+      if (!tag || !tag.handles.includes(handle)) continue;
+      const newHandles = tag.handles.filter((h) => h !== handle);
+      try {
+        const res = await fetch(`/api/tags/${tag.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ handles: newHandles }),
+        });
+        if (res.ok) onTagUpdated(await res.json());
+      } catch { /* ignore */ }
+    }
+  }, [selectedTags, tags, onTagUpdated]);
 
   const addTag = useCallback(async (tagName: string) => {
     const trimmed = tagName.trim();
     if (!trimmed || selectedTags.includes(trimmed)) return;
-
     setSelectedTags((prev) => [...prev, trimmed]);
-
-    const existingTag = tags.find((t) => t.name === trimmed);
-    if (existingTag) {
-      if (!eventLink && existingTag.event_link) {
-        setEventLink(existingTag.event_link);
+    const existing = tags.find((t) => t.name === trimmed);
+    if (existing) {
+      if (!eventLink && existing.event_link) {
+        setEventLink(existing.event_link);
         if (!showEventLink) setShowEventLink(true);
       }
     } else {
@@ -88,10 +98,7 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: trimmed }),
         });
-        if (res.ok) {
-          const newTag: Tag = await res.json();
-          onTagCreated(newTag);
-        }
+        if (res.ok) onTagCreated(await res.json());
       } catch { /* ignore */ }
     }
   }, [selectedTags, tags, eventLink, showEventLink, onTagCreated]);
@@ -107,6 +114,18 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
       setNewTagInput('');
     }
   }, [newTagInput, addTag]);
+
+  const handleDeleteTag = useCallback(async (tag: Tag) => {
+    try {
+      const res = await fetch(`/api/tags/${tag.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onTagDeleted(tag.id);
+        if (selectedTags.includes(tag.name)) {
+          setSelectedTags((prev) => prev.filter((t) => t !== tag.name));
+        }
+      }
+    } catch { /* ignore */ }
+  }, [onTagDeleted, selectedTags]);
 
   const availableTags = tags.filter((t) => !selectedTags.includes(t.name));
 
@@ -136,7 +155,6 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
       });
       const newPost = await res.json();
       onCreated(newPost);
-      // Save handles back to each selected tag for future suggestions
       if (handlesList.length > 0) {
         for (const tagName of selectedTags) {
           const tag = tags.find((t) => t.name === tagName);
@@ -196,6 +214,47 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
             </div>
           </div>
 
+          {/* Tags — right under post type */}
+          <div>
+            <FieldLabel>Tags</FieldLabel>
+            {selectedTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedTags.map((tagName) => {
+                  const tag = tags.find((t) => t.name === tagName);
+                  const color = tag?.color ?? '#6b7280';
+                  return (
+                    <span key={tagName} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
+                      {tagName}
+                      <button onClick={() => removeTag(tagName)} className="opacity-70 hover:opacity-100 leading-none">×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {availableTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {availableTags.map((tag) => (
+                  <div key={tag.id} className="inline-flex items-center rounded-full border overflow-hidden text-[10px] font-semibold" style={{ borderColor: tag.color, color: tag.color }}>
+                    <button onClick={() => addTag(tag.name)} className="pl-2 pr-1 py-0.5 hover:opacity-70 transition-opacity">
+                      + {tag.name}
+                    </button>
+                    <button onClick={() => handleDeleteTag(tag)} className="pr-1.5 py-0.5 opacity-30 hover:opacity-100 hover:text-red-500 transition-all leading-none" title="Delete tag">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              value={newTagInput}
+              onChange={(e) => setNewTagInput(e.target.value)}
+              onKeyDown={handleNewTagKeyDown}
+              onBlur={() => { if (newTagInput.trim()) { addTag(newTagInput); setNewTagInput(''); } }}
+              placeholder="New tag…"
+              className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+            />
+          </div>
+
           {/* Name */}
           <div>
             <FieldLabel>Name *</FieldLabel>
@@ -218,50 +277,10 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
             />
           </div>
 
-          {/* Tags */}
-          <div>
-            <FieldLabel>Tags</FieldLabel>
-            {selectedTags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {selectedTags.map((tagName) => {
-                  const tag = tags.find((t) => t.name === tagName);
-                  const color = tag?.color ?? '#6b7280';
-                  return (
-                    <span key={tagName} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
-                      {tagName}
-                      <button onClick={() => removeTag(tagName)} className="opacity-70 hover:opacity-100 leading-none">×</button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex gap-1.5">
-              {availableTags.length > 0 && (
-                <select
-                  className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  value=""
-                  onChange={(e) => { if (e.target.value) { addTag(e.target.value); e.target.value = ''; } }}
-                >
-                  <option value="">Add tag…</option>
-                  {availableTags.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
-                </select>
-              )}
-              <input
-                value={newTagInput}
-                onChange={(e) => setNewTagInput(e.target.value)}
-                onKeyDown={handleNewTagKeyDown}
-                onBlur={() => { if (newTagInput.trim()) { addTag(newTagInput); setNewTagInput(''); } }}
-                placeholder="New tag…"
-                className="flex-1 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
-              />
-            </div>
-          </div>
-
           {/* IG Handle(s) */}
           <div>
             <FieldLabel>IG Handle{selectedHandles.length > 1 ? 's' : ''}</FieldLabel>
 
-            {/* Selected handles as chips */}
             {selectedHandles.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {selectedHandles.map((h) => (
@@ -273,7 +292,6 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
               </div>
             )}
 
-            {/* Freeform input */}
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
               <span className="text-gray-400 text-sm">@</span>
               <input
@@ -286,7 +304,6 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
               />
             </div>
 
-            {/* Suggested handles from selected tags */}
             {suggestedHandles.length > 0 && (
               <div className="mt-2">
                 <div className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">From tag</div>
@@ -294,18 +311,14 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated, o
                   {suggestedHandles.map((h) => {
                     const active = selectedHandles.includes(h);
                     return (
-                      <button
-                        key={h}
-                        onClick={() => toggleHandle(h)}
-                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded border transition-colors"
-                        style={{
-                          backgroundColor: active ? '#374151' : '#f9fafb',
-                          color: active ? '#fff' : '#6b7280',
-                          borderColor: active ? '#374151' : '#e5e7eb',
-                        }}
-                      >
-                        @{h}
-                      </button>
+                      <div key={h} className="inline-flex items-center rounded border overflow-hidden" style={{ backgroundColor: active ? '#374151' : '#f9fafb', borderColor: active ? '#374151' : '#e5e7eb' }}>
+                        <button onClick={() => toggleHandle(h)} className="text-[9px] font-semibold px-1.5 py-0.5" style={{ color: active ? '#fff' : '#6b7280' }}>
+                          @{h}
+                        </button>
+                        <button onClick={() => removeHandleFromTag(h)} className="pr-1 text-[9px] opacity-30 hover:opacity-100 hover:text-red-400 transition-all leading-none" title="Remove from tag" style={{ color: active ? '#fff' : '#9ca3af' }}>
+                          ×
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
