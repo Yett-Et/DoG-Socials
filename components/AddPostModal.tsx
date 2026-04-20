@@ -51,7 +51,7 @@ export default function AddPostModal({ tags, onClose, onCreated, onTagCreated }:
       const tag = tags.find((t) => t.name === tagName);
       if (tag) tag.handles.forEach((h) => all.add(h));
     }
-    return [...all].sort();
+    return Array.from(all).sort();
   }, [selectedTags, tags]);
 
   const toggleHandle = useCallback((handle: string) => {

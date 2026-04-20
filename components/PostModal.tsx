@@ -145,7 +145,7 @@ export default function PostModal({ post, tags, onClose, onMarkPosted, onSave, o
       const tag = tags.find((t) => t.name === tagName);
       if (tag) tag.handles.forEach((h) => all.add(h));
     }
-    return [...all].sort();
+    return Array.from(all).sort();
   }, [postTags, tags]);
 
   return (
