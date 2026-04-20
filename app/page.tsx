@@ -3,15 +3,19 @@ import { POST_TYPE_STYLES } from '@/lib/types';
 import CalendarGrid from '@/components/CalendarGrid';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   const supabase = createClient();
-  const { data: posts, error } = await supabase
-    .from('social_calendar_posts')
-    .select('*')
-    .order('day_index', { ascending: true })
-    .order('section', { ascending: false }) // 'story' after 'feed'
-    .order('position', { ascending: true });
+  const [{ data: posts, error }, { data: tags }] = await Promise.all([
+    supabase
+      .from('social_calendar_posts')
+      .select('*')
+      .order('post_date', { ascending: true })
+      .order('section', { ascending: false })
+      .order('position', { ascending: true }),
+    supabase.from('tags').select('*').order('name', { ascending: true }),
+  ]);
 
   if (error) {
     console.error('Failed to load posts:', error.message);
@@ -22,25 +26,26 @@ export default async function Home() {
       <div className="px-4 py-5 max-w-[1500px] mx-auto">
         {/* Header */}
         <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900">
-            Dreaming of Greece — Social Calendar
-          </h1>
+          <h1 className="text-xl font-bold text-gray-900">Social Calendar</h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Apr 14–18 &nbsp;·&nbsp; moments.gallery &nbsp;·&nbsp; Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
+            Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
           </p>
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-5">
           {Object.entries(POST_TYPE_STYLES).map(([type, style]) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <div className={`w-2.5 h-2.5 rounded-full ${style.dotColor}`} />
-              <span className="text-xs text-gray-500">{style.label}</span>
-            </div>
+            <span
+              key={type}
+              className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded text-white"
+              style={{ backgroundColor: style.color }}
+            >
+              {style.icon} {style.label}
+            </span>
           ))}
         </div>
 
-        <CalendarGrid initialPosts={posts ?? []} />
+        <CalendarGrid initialPosts={posts ?? []} initialTags={tags ?? []} />
       </div>
     </main>
   );

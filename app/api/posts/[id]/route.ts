@@ -11,7 +11,12 @@ export async function PATCH(
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if ('caption' in body) updates.caption = body.caption;
-  if ('day_index' in body) updates.day_index = body.day_index;
+  if ('bio' in body) updates.bio = body.bio;
+  if ('ig_handle' in body) updates.ig_handle = body.ig_handle;
+  if ('drive_link' in body) updates.drive_link = body.drive_link;
+  if ('event_link' in body) updates.event_link = body.event_link;
+  if ('tags' in body) updates.tags = body.tags;
+  if ('post_date' in body) updates.post_date = body.post_date;
   if ('is_posted' in body) {
     updates.is_posted = body.is_posted;
     updates.posted_at = body.is_posted ? new Date().toISOString() : null;
@@ -29,4 +34,22 @@ export async function PATCH(
   }
 
   return NextResponse.json(data);
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from('social_calendar_posts')
+    .delete()
+    .eq('id', params.id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
