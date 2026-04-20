@@ -72,6 +72,8 @@ export default function PostModal({
   const [newTagInput, setNewTagInput] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeleteTagId, setConfirmDeleteTagId] = useState<string | null>(null);
+  const [confirmDeleteHandle, setConfirmDeleteHandle] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(post.name);
 
@@ -85,6 +87,8 @@ export default function PostModal({
     setPostTags(post.tags ?? []);
     setNewTagInput('');
     setConfirmDelete(false);
+    setConfirmDeleteTagId(null);
+    setConfirmDeleteHandle(null);
     setEditingName(false);
     setNameValue(post.name);
   }, [post.id]);
@@ -278,6 +282,15 @@ export default function PostModal({
               <div className="flex flex-wrap gap-1 mb-2">
                 {tags.map((tag) => {
                   const isSelected = postTags.includes(tag.name);
+                  if (confirmDeleteTagId === tag.id) {
+                    return (
+                      <div key={tag.id} className="inline-flex items-center rounded-full border border-red-300 bg-red-50 overflow-hidden text-[10px] font-semibold">
+                        <span className="pl-2 pr-1 py-0.5 text-red-500">Delete "{tag.name}"?</span>
+                        <button onClick={() => { handleDeleteTag(tag); setConfirmDeleteTagId(null); }} className="px-1.5 py-0.5 text-red-500 hover:bg-red-100 font-bold leading-none">✓</button>
+                        <button onClick={() => setConfirmDeleteTagId(null)} className="pr-1.5 py-0.5 text-gray-400 hover:text-gray-600 leading-none">✗</button>
+                      </div>
+                    );
+                  }
                   return (
                     <div key={tag.id} className="inline-flex items-center rounded-full border overflow-hidden text-[10px] font-semibold transition-colors"
                       style={{ borderColor: tag.color, backgroundColor: isSelected ? tag.color : 'transparent' }}>
@@ -289,7 +302,7 @@ export default function PostModal({
                         {isSelected ? '✓ ' : '+ '}{tag.name}
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteTagId(tag.id); }}
                         className="pr-1.5 py-0.5 opacity-40 hover:opacity-100 hover:text-red-400 transition-all leading-none"
                         style={{ color: isSelected ? '#fff' : tag.color }}
                         title="Delete tag"
@@ -374,12 +387,21 @@ export default function PostModal({
                 <div className="flex flex-wrap gap-1">
                   {suggestedHandles.map((h) => {
                     const active = selectedHandles.includes(h);
+                    if (confirmDeleteHandle === h) {
+                      return (
+                        <div key={h} className="inline-flex items-center rounded border border-red-300 bg-red-50 overflow-hidden">
+                          <span className="pl-1.5 pr-1 py-0.5 text-[9px] text-red-500">Remove @{h}?</span>
+                          <button onClick={() => { removeHandleFromTag(h); setConfirmDeleteHandle(null); }} className="px-1 py-0.5 text-[9px] text-red-500 hover:bg-red-100 font-bold leading-none">✓</button>
+                          <button onClick={() => setConfirmDeleteHandle(null)} className="pr-1 py-0.5 text-[9px] text-gray-400 hover:text-gray-600 leading-none">✗</button>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={h} className="inline-flex items-center rounded border overflow-hidden" style={{ backgroundColor: active ? '#374151' : '#f9fafb', borderColor: active ? '#374151' : '#e5e7eb' }}>
                         <button onClick={() => toggleHandle(h)} className="text-[9px] font-semibold px-1.5 py-0.5" style={{ color: active ? '#fff' : '#6b7280' }}>
                           @{h}
                         </button>
-                        <button onClick={() => removeHandleFromTag(h)} className="pr-1 text-[9px] opacity-30 hover:opacity-100 hover:text-red-400 transition-all leading-none" title="Remove from tag" style={{ color: active ? '#fff' : '#9ca3af' }}>
+                        <button onClick={() => setConfirmDeleteHandle(h)} className="pr-1 text-[9px] opacity-30 hover:opacity-100 hover:text-red-400 transition-all leading-none" title="Remove from tag" style={{ color: active ? '#fff' : '#9ca3af' }}>
                           ×
                         </button>
                       </div>
