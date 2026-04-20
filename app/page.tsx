@@ -25,11 +25,18 @@ export default async function Home() {
     <main className="min-h-screen bg-white">
       <div className="px-4 py-5 max-w-[1500px] mx-auto">
         {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900">Social Calendar</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
-          </p>
+        <div className="flex items-center gap-3 mb-4">
+          <img
+            src="/logo.svg"
+            alt="Moments. Gallery"
+            className="h-10 w-auto flex-shrink-0"
+          />
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Moments. Gallery — Social Calendar</h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Drag cards to reschedule &nbsp;·&nbsp; Tap cards for details &amp; captions
+            </p>
+          </div>
         </div>
 
         {/* Legend */}

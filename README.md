@@ -1,4 +1,4 @@
-# Social Calendar — moments.gallery
+# Moments. Gallery — Social Calendar
 
 A general-purpose social media planning tool for managing Instagram posting schedules across campaigns, events, and projects.
 
@@ -44,9 +44,9 @@ Tags are the primary way to organize posts by event or campaign (e.g. "Dreaming 
 
 Each tag can store:
 - **Name** — displayed as a colored chip on each post card
-- **Event Link** — automatically applied to new posts when the tag is selected
-- **Handles** — list of IG handles associated with this tag; shown as clickable chips in the handle picker
-- **Color** — pill color for visual identification
+- **Event Link** — default event link auto-filled on posts when the tag is applied (one-way; editing a post's event link doesn't change the tag's default)
+- **Handles** — list of IG handles associated with this tag; shown as clickable chips in the handle picker; automatically updated when handles are saved on posts with this tag
+- **Color** — pill color for visual identification; new tags are auto-assigned distinct colors
 
 Tags are created on the fly — just type a new name in the tag field and press Enter.
 
@@ -192,6 +192,8 @@ Click **Create Post** and it appears in the correct day column immediately.
 │   ├── supabase.ts             # Supabase client
 │   └── types.ts                # SocialPost + Tag types, POST_TYPE_STYLES, TYPE_SECTION, helpers
 │
+├── public/
+│   └── logo.svg                # Logo shown in the header — replace with your own file
 ├── .env.local                  # NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY
 └── next.config.mjs             # Next.js config
 ```
