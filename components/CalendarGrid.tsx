@@ -131,6 +131,31 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
     fetch(`/api/posts/${postId}`, { method: 'DELETE' });
   }, []);
 
+  const handleDuplicate = useCallback(async (postId: string) => {
+    const source = posts.find((p) => p.id === postId);
+    if (!source) return;
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        post_type: source.post_type,
+        section: source.section,
+        name: source.name,
+        post_date: source.post_date,
+        ig_handle: source.ig_handle,
+        drive_link: source.drive_link,
+        event_link: source.event_link,
+        bio: source.bio,
+        caption: source.caption,
+        tags: source.tags,
+        subtitle: source.subtitle,
+      }),
+    });
+    const newPost: SocialPost = await res.json();
+    setPosts((prev) => [...prev, newPost]);
+    setSelectedPostId(newPost.id);
+  }, [posts]);
+
   const handleMoveDay = useCallback(
     (postId: string, newDate: string) => {
       const post = posts.find((p) => p.id === postId);
@@ -236,6 +261,7 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
           onSave={handleSave}
           onMoveDay={handleMoveDay}
           onDelete={handleDelete}
+          onDuplicate={handleDuplicate}
           onTagCreated={handleTagCreated}
           onTagUpdated={handleTagUpdated}
           onTagDeleted={handleTagDeleted}

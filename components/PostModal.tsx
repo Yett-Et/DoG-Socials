@@ -11,6 +11,7 @@ type Props = {
   onSave: (postId: string, updates: Partial<SocialPost>) => void;
   onMoveDay: (postId: string, newDate: string) => void;
   onDelete: (postId: string) => void;
+  onDuplicate: (postId: string) => void;
   onTagCreated: (tag: Tag) => void;
   onTagUpdated: (tag: Tag) => void;
   onTagDeleted: (tagId: string) => void;
@@ -57,7 +58,7 @@ async function patchTag(tag: Tag, updates: Record<string, unknown>, onTagUpdated
 }
 
 export default function PostModal({
-  post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete,
+  post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete, onDuplicate,
   onTagCreated, onTagUpdated, onTagDeleted,
 }: Props) {
   const [selectedHandles, setSelectedHandles] = useState<string[]>(
@@ -453,6 +454,12 @@ export default function PostModal({
         <div className="flex-shrink-0 p-4 border-t bg-gray-50 flex flex-col gap-2">
           <button onClick={() => onMarkPosted(post.id, !post.is_posted)} className={['w-full py-2.5 rounded-xl font-semibold text-sm transition-colors', post.is_posted ? 'bg-gray-200 text-gray-500 hover:bg-gray-300' : 'bg-green-500 text-white hover:bg-green-600'].join(' ')}>
             {post.is_posted ? '✓ Posted — Tap to unmark' : 'Mark as Posted ✓'}
+          </button>
+          <button
+            onClick={() => { onDuplicate(post.id); onClose(); }}
+            className="w-full py-2 rounded-xl font-semibold text-sm text-blue-500 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors"
+          >
+            Duplicate post
           </button>
           {confirmDelete ? (
             <div className="flex gap-2">
