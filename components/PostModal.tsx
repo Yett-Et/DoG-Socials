@@ -453,32 +453,42 @@ export default function PostModal({
 
         {/* Footer */}
         <div className="flex-shrink-0 p-4 border-t bg-gray-50 flex flex-col gap-2">
-          <button onClick={() => onMarkPosted(post.id, !post.is_posted)} className={['w-full py-2.5 rounded-xl font-semibold text-sm transition-colors', post.is_posted ? 'bg-gray-200 text-gray-500 hover:bg-gray-300' : 'bg-green-500 text-white hover:bg-green-600'].join(' ')}>
-            {post.is_posted ? '✓ Posted — Tap to unmark' : 'Mark as Posted ✓'}
-          </button>
-          {!post.is_posted && (
+          <div className="flex gap-2">
             <button
-              onClick={() => onMarkMissed(post.id, !post.missed)}
-              className={['w-full py-2 rounded-xl font-semibold text-sm transition-colors', post.missed ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'text-gray-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200'].join(' ')}
+              onClick={() => onMarkPosted(post.id, !post.is_posted)}
+              className={['flex-1 py-2.5 rounded-xl font-semibold text-sm transition-colors', post.is_posted ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'].join(' ')}
             >
-              {post.missed ? '✗ Never Posted — Tap to unmark' : 'Mark as Never Posted ✗'}
+              {post.is_posted ? '✓ Posted' : 'Posted'}
             </button>
-          )}
-          <button
-            onClick={() => { onDuplicate(post.id); onClose(); }}
-            className="w-full py-2 rounded-xl font-semibold text-sm text-blue-500 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors"
-          >
-            Duplicate post
-          </button>
+            {!post.is_posted && (
+              <button
+                onClick={() => onMarkMissed(post.id, !post.missed)}
+                className={['flex-1 py-2.5 rounded-xl font-semibold text-sm transition-colors', post.missed ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-600'].join(' ')}
+              >
+                {post.missed ? '✗ Never Posted' : 'Never Posted'}
+              </button>
+            )}
+          </div>
           {confirmDelete ? (
             <div className="flex gap-2">
               <button onClick={() => onDelete(post.id)} className="flex-1 py-2 rounded-xl font-semibold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors">Confirm Delete</button>
               <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2 rounded-xl font-semibold text-sm bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors">Cancel</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDelete(true)} className="w-full py-2 rounded-xl font-semibold text-sm text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors">
-              Delete post
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { onDuplicate(post.id); onClose(); }}
+                className="flex-1 py-2 rounded-xl font-semibold text-sm text-blue-500 hover:text-blue-700 hover:bg-blue-50 bg-gray-100 transition-colors"
+              >
+                Duplicate
+              </button>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex-1 py-2 rounded-xl font-semibold text-sm text-red-400 hover:text-red-600 hover:bg-red-50 bg-gray-100 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           )}
         </div>
       </div>
