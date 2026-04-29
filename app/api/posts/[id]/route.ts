@@ -22,6 +22,7 @@ export async function PATCH(
     updates.is_posted = body.is_posted;
     updates.posted_at = body.is_posted ? new Date().toISOString() : null;
   }
+  if ('missed' in body) updates.missed = body.missed;
 
   const { data, error } = await supabase
     .from('social_calendar_posts')

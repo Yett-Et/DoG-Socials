@@ -14,6 +14,7 @@ export type SocialPost = {
   position: number;
   is_posted: boolean;
   posted_at: string | null;
+  missed: boolean;
   created_at: string;
   updated_at: string;
 };

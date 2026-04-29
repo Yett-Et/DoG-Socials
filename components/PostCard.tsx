@@ -36,11 +36,17 @@ export default function PostCard({ post, tagMap, onClick }: Props) {
         typeStyle.border,
         isDragging ? 'opacity-50 shadow-lg' : 'hover:opacity-80',
         post.is_posted ? 'opacity-40' : '',
+        post.missed && !post.is_posted ? 'grayscale opacity-40' : '',
       ].join(' ')}
     >
       {post.is_posted && (
         <span className={`absolute top-1 right-2 text-[10px] font-bold ${typeStyle.labelColor}`}>
           ✓
+        </span>
+      )}
+      {post.missed && !post.is_posted && (
+        <span className="absolute top-1 right-2 text-[10px] font-bold text-gray-400">
+          ✗
         </span>
       )}
       <div

@@ -120,6 +120,11 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
     patchPost(postId, { is_posted: isPosted, posted_at: postedAt });
   }, []);
 
+  const handleMarkMissed = useCallback((postId: string, missed: boolean) => {
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, missed } : p)));
+    patchPost(postId, { missed });
+  }, []);
+
   const handleSave = useCallback((postId: string, updates: Partial<SocialPost>) => {
     setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, ...updates } : p)));
     patchPost(postId, updates as Record<string, unknown>);
@@ -188,12 +193,13 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
   }, []);
 
   const postedCount = posts.filter((p) => p.is_posted).length;
+  const missedCount = posts.filter((p) => p.missed && !p.is_posted).length;
 
   const weekLabel = `${weekDays[0].label} – ${weekDays[6].label}, ${weekStart.getFullYear()}`;
 
   return (
     <>
-      <StatsBar total={posts.length} posted={postedCount} />
+      <StatsBar total={posts.length} posted={postedCount} missed={missedCount} />
 
       {/* Week navigation + New Post button */}
       <div className="flex items-center justify-between mb-4">
@@ -258,6 +264,7 @@ export default function CalendarGrid({ initialPosts, initialTags }: Props) {
           tags={tags}
           onClose={handleCloseModal}
           onMarkPosted={handleMarkPosted}
+          onMarkMissed={handleMarkMissed}
           onSave={handleSave}
           onMoveDay={handleMoveDay}
           onDelete={handleDelete}

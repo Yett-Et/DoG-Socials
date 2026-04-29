@@ -8,6 +8,7 @@ type Props = {
   tags: Tag[];
   onClose: () => void;
   onMarkPosted: (postId: string, isPosted: boolean) => void;
+  onMarkMissed: (postId: string, missed: boolean) => void;
   onSave: (postId: string, updates: Partial<SocialPost>) => void;
   onMoveDay: (postId: string, newDate: string) => void;
   onDelete: (postId: string) => void;
@@ -58,7 +59,7 @@ async function patchTag(tag: Tag, updates: Record<string, unknown>, onTagUpdated
 }
 
 export default function PostModal({
-  post, tags, onClose, onMarkPosted, onSave, onMoveDay, onDelete, onDuplicate,
+  post, tags, onClose, onMarkPosted, onMarkMissed, onSave, onMoveDay, onDelete, onDuplicate,
   onTagCreated, onTagUpdated, onTagDeleted,
 }: Props) {
   const [selectedHandles, setSelectedHandles] = useState<string[]>(
@@ -455,6 +456,14 @@ export default function PostModal({
           <button onClick={() => onMarkPosted(post.id, !post.is_posted)} className={['w-full py-2.5 rounded-xl font-semibold text-sm transition-colors', post.is_posted ? 'bg-gray-200 text-gray-500 hover:bg-gray-300' : 'bg-green-500 text-white hover:bg-green-600'].join(' ')}>
             {post.is_posted ? '✓ Posted — Tap to unmark' : 'Mark as Posted ✓'}
           </button>
+          {!post.is_posted && (
+            <button
+              onClick={() => onMarkMissed(post.id, !post.missed)}
+              className={['w-full py-2 rounded-xl font-semibold text-sm transition-colors', post.missed ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'text-gray-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200'].join(' ')}
+            >
+              {post.missed ? '✗ Never Posted — Tap to unmark' : 'Mark as Never Posted ✗'}
+            </button>
+          )}
           <button
             onClick={() => { onDuplicate(post.id); onClose(); }}
             className="w-full py-2 rounded-xl font-semibold text-sm text-blue-500 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors"
